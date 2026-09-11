@@ -740,8 +740,12 @@ export default function App() {
     const candidateMatches = [];
 
     for (let lvl = 1; lvl <= totalLevelCount; lvl++) {
-      const match = getNextMatchFromQueueIndependent(lvl);
-      if (match.valid) {
+      let currentLevelQueue = [...getQueueForLevelIndependent(lvl)];
+
+      while (currentLevelQueue.length >= 4) {
+        const match = getNextMatchFromQueue(currentLevelQueue);
+        if (!match.valid) break;
+
         const allPlayers = [...match.teamA, ...match.teamB];
         const minCheckedInAt = Math.min(...allPlayers.map((p) => p.checkedInAt || Date.now()));
 
@@ -750,6 +754,9 @@ export default function App() {
           matchData: match,
           minCheckedInAt
         });
+
+        const usedIds = new Set(allPlayers.map(p => p.id));
+        currentLevelQueue = currentLevelQueue.filter(p => !usedIds.has(p.id));
       }
     }
 
@@ -1558,57 +1565,95 @@ export default function App() {
         {activeTab === 'courts' && (
           <div className="space-y-8 animate-in fade-in duration-200">
             {queueMode === 'independent' && (
-              <div className="bg-gray-50 border border-cyan-500/30 rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <ListOrdered className="w-5 h-5 text-cyan-600" />
-                    <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">
-                      Next Upcoming Match Preview
-                    </h2>
+              <div className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-2xs relative overflow-hidden">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-200 relative z-10">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-extrabold tracking-wide uppercase text-gray-900">
+                        Possible Next Matches
+                      </h2>
+                      <p className="text-gray-500 text-[11px]">Top priority matches ready to be pulled onto the next available court across all levels</p>
+                    </div>
                   </div>
                 </div>
 
-                <div>
+                <div className="relative z-10">
                   {(() => {
-                    const candidates = getPrioritizedCandidateMatchesIndependent();
-                    const nextMatch = candidates[0] || null;
+                    const candidateMatches = getPrioritizedCandidateMatchesIndependent();
+                    const displayMatches = candidateMatches.slice(0, 2);
 
-                    if (!nextMatch) {
+                    if (displayMatches.length === 0) {
                       return (
-                        <div className="bg-white border border-gray-200 rounded-xl p-5 text-center flex flex-col justify-center min-h-[100px]">
-                          <span className="text-xs font-bold text-gray-400">No match ready</span>
-                          <span className="text-[11px] text-gray-400 italic mt-1">Waiting for at least 4 checked-in players of the same level</span>
+                        <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center flex flex-col justify-center min-h-[110px]">
+                          <span className="text-xs font-bold text-gray-700">Queues are gathering players</span>
+                          <span className="text-[11px] text-gray-400 italic mt-1">Waiting for at least 4 checked-in players of the same level to form matches</span>
                         </div>
                       );
                     }
 
-                    const { matchData, level } = nextMatch;
-                    const teamANames = matchData.teamA.map(p => p.name).join(' & ');
-                    const teamBNames = matchData.teamB.map(p => p.name).join(' & ');
-
                     return (
-                      <div className="bg-white rounded-xl p-4 shadow-2xs relative overflow-hidden border-2 border-emerald-500 ring-4 ring-emerald-500/10 bg-emerald-50/10">
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-emerald-500" />
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-[11px] font-extrabold text-cyan-700 bg-cyan-50 border border-cyan-100 px-2.5 py-1 rounded">
-                            Top Queue Match
-                          </span>
-                          <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded border shadow-2xs ${getCourtLevelBadgeStyle(level)}`}>
-                            Level {level}
-                          </span>
-                        </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {displayMatches.map((candidate, index) => {
+                          const { matchData, level } = candidate;
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium text-gray-800 bg-gray-50/80 border border-gray-200 p-3 rounded-lg">
-                          <div><strong className="text-cyan-700 uppercase text-[10px] block mb-0.5">Team A:</strong> {teamANames}</div>
-                          <div><strong className="text-rose-700 uppercase text-[10px] block mb-0.5">Team B:</strong> {teamBNames}</div>
-                        </div>
+                          return (
+                            <div key={`candidate-match-${level}-${index}`} className="bg-white rounded-2xl p-5 border border-gray-200 shadow-2xs relative overflow-hidden flex flex-col justify-between">
+                              <div className={`absolute top-0 left-0 right-0 h-1 ${index === 0 ? 'bg-cyan-500' : 'bg-gray-300'}`} />
+                              
+                              <div className="flex justify-between items-center mb-4">
+                                <span className="text-[10px] font-black tracking-wider uppercase text-cyan-700 bg-cyan-50 border border-cyan-200 px-3 py-1 rounded-full flex items-center gap-1.5">
+                                  <span className={`w-2 h-2 rounded-full ${index === 0 ? 'bg-cyan-500 animate-ping' : 'bg-gray-400'}`} /> 
+                                  {index === 0 ? 'Top Priority Queue' : `Priority #${index + 1}`}
+                                </span>
+                                <span className={`text-xs font-black px-3 py-1 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(level)}`}>
+                                  Level {level}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Team A Card */}
+                                <div className="bg-gray-50 border border-cyan-200 p-3 rounded-xl flex flex-col justify-between">
+                                  <span className="text-[10px] font-black tracking-wider text-cyan-700 uppercase mb-2 flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" /> Team A
+                                  </span>
+                                  <div className="space-y-1">
+                                    {matchData.teamA.map((p) => (
+                                      <div key={p.id} className="text-xs font-bold text-gray-800 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-200">
+                                        <span className="truncate">{p.name}</span>
+                                        {p.partnerId && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-mono border border-amber-200">Linked</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Team B Card */}
+                                <div className="bg-gray-50 border border-rose-200 p-3 rounded-xl flex flex-col justify-between">
+                                  <span className="text-[10px] font-black tracking-wider text-rose-700 uppercase mb-2 flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Team B
+                                  </span>
+                                  <div className="space-y-1">
+                                    {matchData.teamB.map((p) => (
+                                      <div key={p.id} className="text-xs font-bold text-gray-800 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-200">
+                                        <span className="truncate">{p.name}</span>
+                                        {p.partnerId && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-mono border border-amber-200">Linked</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })()}
                 </div>
               </div>
             )}
-
+            
             <div className="space-y-8">
               <div className="space-y-4">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -1923,7 +1968,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* CHECKED-IN PLAYERS SECTION (Updated with detailed status & styling matching reference image) */}
+            {/* CHECKED-IN PLAYERS SECTION */}
             <div className="md:col-span-3 bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center gap-2">
@@ -2010,7 +2055,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* MASTER ROSTER POOL SECTION (Updated with title "Full Roster Pool" matching reference image) */}
+            {/* MASTER ROSTER POOL SECTION */}
             <div className="md:col-span-3 bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center gap-2">
