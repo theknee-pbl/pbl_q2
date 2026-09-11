@@ -36,7 +36,8 @@ import {
   ShieldAlert,
   Lock,
   User,
-  Image as ImageIcon
+  Image as ImageIcon,
+  CircleDot
 } from 'lucide-react';
 
 // --- DYNAMIC COURT / LEVEL BADGE COLOR HELPER ---
@@ -188,6 +189,7 @@ export default function App() {
       name: `Court 0${i + 1}`,
       teamA: [],
       teamB: [],
+      firstServe: null, // 'A' or 'B'
       isLive: false,
       startTime: null,
       totalPlayTimeSec: 0
@@ -356,6 +358,7 @@ export default function App() {
             name: `Court 0${newIdx}`,
             teamA: [],
             teamB: [],
+            firstServe: null,
             isLive: false,
             startTime: null,
             totalPlayTimeSec: 0
@@ -776,6 +779,9 @@ export default function App() {
       return;
     }
 
+    // Randomly pick 'A' or 'B' for First Serve
+    const randomFirstServe = Math.random() < 0.5 ? 'A' : 'B';
+
     if (queueMode === 'independent') {
       const candidateMatches = getPrioritizedCandidateMatchesIndependent();
       if (candidateMatches.length === 0) {
@@ -791,6 +797,7 @@ export default function App() {
               ...c,
               teamA: bestMatch.matchData.teamA,
               teamB: bestMatch.matchData.teamB,
+              firstServe: randomFirstServe,
               level: bestMatch.level,
               isLive: true,
               startTime: Date.now()
@@ -827,6 +834,7 @@ export default function App() {
               ...c,
               teamA: matchResult.teamA,
               teamB: matchResult.teamB,
+              firstServe: randomFirstServe,
               isLive: true,
               startTime: Date.now()
             };
@@ -966,6 +974,7 @@ export default function App() {
         teamBPlayerIds: currentCourt.teamB.map(p => p.id),
         teamA: currentCourt.teamA.map(p => p.name),
         teamB: currentCourt.teamB.map(p => p.name),
+        firstServe: currentCourt.firstServe,
         winningTeam: winningTeamKey,
         durationSec,
         timestamp: Date.now()
@@ -978,6 +987,7 @@ export default function App() {
         ...currentCourt, 
         teamA: [], 
         teamB: [], 
+        firstServe: null,
         isLive: false, 
         startTime: null,
         totalPlayTimeSec: (currentCourt.totalPlayTimeSec || 0) + durationSec
@@ -999,6 +1009,7 @@ export default function App() {
         name: `Court 0${i + 1}`, 
         teamA: [], 
         teamB: [], 
+        firstServe: null,
         isLive: false, 
         startTime: null,
         totalPlayTimeSec: 0 
@@ -1717,35 +1728,49 @@ export default function App() {
                           </div>
 
                           {isOccupied ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-2">
-                              <div className="bg-white border-l-4 border-cyan-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs">
-                                <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block mb-1">Team A</span>
-                                {court.teamA.map((p) => (
-                                  <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
-                                    {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-cyan-600 ml-1" />}
-                                  </div>
-                                ))}
-                                <button
-                                  onClick={() => handleFinishMatch(court.id, 'A')}
-                                  className="mt-2 w-full py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[11px] rounded border border-cyan-200 transition flex items-center justify-center gap-1 cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-3 h-3" /> Team A Wins
-                                </button>
-                              </div>
+                            <div className="space-y-3 my-2">
+                              {/* FIRST SERVE BADGE */}
+                              {court.firstServe && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs font-bold text-amber-900">
+                                  <span className="flex items-center gap-1.5">
+                                    <CircleDot className="w-4 h-4 text-amber-600 animate-spin" /> First Serve:
+                                  </span>
+                                  <span className={`px-2 py-0.5 rounded text-[11px] ${court.firstServe === 'A' ? 'bg-cyan-600 text-white' : 'bg-rose-600 text-white'}`}>
+                                    Team {court.firstServe}
+                                  </span>
+                                </div>
+                              )}
 
-                              <div className="bg-white border-l-4 border-rose-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs">
-                                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block mb-1">Team B</span>
-                                {court.teamB.map((p) => (
-                                  <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
-                                    {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-rose-600 ml-1" />}
-                                  </div>
-                                ))}
-                                <button
-                                  onClick={() => handleFinishMatch(court.id, 'B')}
-                                  className="mt-2 w-full py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition flex items-center justify-center gap-1 cursor-pointer"
-                                >
-                                  <CheckCircle2 className="w-3 h-3" /> Team B Wins
-                                </button>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="bg-white border-l-4 border-cyan-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs">
+                                  <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block mb-1">Team A</span>
+                                  {court.teamA.map((p) => (
+                                    <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
+                                      {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-cyan-600 ml-1" />}
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => handleFinishMatch(court.id, 'A')}
+                                    className="mt-2 w-full py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[11px] rounded border border-cyan-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                                  >
+                                    <CheckCircle2 className="w-3 h-3" /> Team A Wins
+                                  </button>
+                                </div>
+
+                                <div className="bg-white border-l-4 border-rose-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs">
+                                  <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block mb-1">Team B</span>
+                                  {court.teamB.map((p) => (
+                                    <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
+                                      {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-rose-600 ml-1" />}
+                                    </div>
+                                  ))}
+                                  <button
+                                    onClick={() => handleFinishMatch(court.id, 'B')}
+                                    className="mt-2 w-full py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                                  >
+                                    <CheckCircle2 className="w-3 h-3" /> Team B Wins
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           ) : (
@@ -2298,11 +2323,16 @@ export default function App() {
                         </span>
                         <span className="text-xs font-bold text-gray-800">{match.courtName}</span>
                         <span className="text-xs text-gray-400">• {formatDuration(match.durationSec)}</span>
+                        {match.firstServe && (
+                          <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">
+                            First Serve: Team {match.firstServe}
+                          </span>
+                        )}
                       </div>
 
                       <div className="text-xs text-gray-700 flex flex-wrap gap-4 pt-1">
                         <div><strong className="text-cyan-700">Team A:</strong> {match.teamA.join(' & ')} {match.winningTeam === 'A' && '👑'}</div>
-                        <div><strong className="text-rose-700">TeamB:</strong> {match.teamB.join(' & ')} {match.winningPlayerIds === 'B' && '👑'}</div>
+                        <div><strong className="text-rose-700">Team B:</strong> {match.teamB.join(' & ')} {match.winningTeam === 'B' && '👑'}</div>
                       </div>
                     </div>
 
