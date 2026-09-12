@@ -2436,77 +2436,82 @@ export default function App() {
 
         {/* TAB 4: MATCH LOGS */}
         {activeTab === 'matchLogs' && (
-          <div className="bg-gray-50 border border-gray-200 rounded-3xl p-4 md:p-6 shadow-2xs animate-in fade-in duration-200">
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-              <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600 shrink-0">
-                <History className="w-6 h-6" />
-              </div>
+          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
               <div>
-                <h2 className="text-base font-black text-gray-900 uppercase tracking-wide">
-                  Match History Logs
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <History className="w-5 h-5 text-cyan-600" /> Match History Logs
                 </h2>
-                <p className="text-gray-500 text-xs">Complete chronological record of all recorded matches and results</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  All recorded matches for this session. You can swap match winners if a score was logged incorrectly.
+                </p>
               </div>
             </div>
 
             {matchHistory.length === 0 ? (
-              <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                No matches have been completed yet in this session.
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic">
+                No matches completed yet.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {matchHistory.map((match) => {
-                  const matchDate = new Date(match.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const matchLevel = match.level ?? match.courtId ?? 1;
+                  const isWithinTwoMinutes = Date.now() - match.timestamp < 120000;
 
                   return (
-                    <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-extrabold text-xs bg-cyan-50 text-cyan-700 border border-cyan-200 px-2.5 py-0.5 rounded-md">
+                    <div 
+                      key={match.id} 
+                      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden"
+                    >
+                      <div className="space-y-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-xs font-black bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-100 shadow-2xs">
                             Match #{match.matchNumber}
                           </span>
-                          <span className="text-xs font-bold text-gray-500">
-                            {match.courtName} • Level {match.level}
+                          <span className="text-xs font-bold text-gray-700">
+                            {match.courtName}
                           </span>
                           <span className="text-xs text-gray-400 font-mono">
-                            {matchDate} ({formatDuration(match.durationSec)})
+                            • {formatDuration(match.durationSec)}
+                          </span>
+                          <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(matchLevel)}`}>
+                            Level {matchLevel}
+                          </span>
+                          <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg shadow-2xs">
+                            First Serve: Team {match.firstServe}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                          <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${match.winningTeam === 'A' ? 'bg-emerald-50/60 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
-                            <div className="min-w-0 flex-1 mr-2">
-                              <span className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider block mb-0.5">Team A</span>
-                              <span className="font-bold text-gray-800 truncate block">{match.teamA.join(', ')}</span>
-                            </div>
-                            {match.winningTeam === 'A' && (
-                              <span className="px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-full shrink-0">
-                                Winner
-                              </span>
-                            )}
-                          </div>
-
-                          <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${match.winningTeam === 'B' ? 'bg-emerald-50/60 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
-                            <div className="min-w-0 flex-1 mr-2">
-                              <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block mb-0.5">Team B</span>
-                              <span className="font-bold text-gray-800 truncate block">{match.teamB.join(', ')}</span>
-                            </div>
-                            {match.winningTeam === 'B' && (
-                              <span className="px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-full shrink-0">
-                                Winner
-                              </span>
-                            )}
-                          </div>
+                        <div className="flex items-center gap-6 text-xs pt-1 flex-wrap">
+                          <span className="font-bold text-cyan-900">
+                            Team A: <span className="font-normal text-gray-700">{match.teamA.join(' & ')}</span> {match.winningTeam === 'A' && '👑'}
+                          </span>
+                          <span className="font-bold text-rose-900">
+                            Team B: <span className="font-normal text-gray-700">{match.teamB.join(' & ')}</span> {match.winningTeam === 'B' && '👑'}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-gray-100">
+                      <div className="flex items-center gap-3 shrink-0 self-end md:self-center pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 w-full md:w-auto justify-end">
+                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full border shadow-2xs ${
+                          match.winningTeam === 'A' 
+                            ? 'bg-cyan-50 border-cyan-200 text-cyan-800' 
+                            : 'bg-rose-50 border-rose-200 text-rose-800'
+                        }`}>
+                          Winner: Team {match.winningTeam}
+                        </span>
+
                         <button
                           onClick={() => handleSwapMatchWinner(match.id)}
-                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
-                          title="Swap winning team for this match"
+                          disabled={!isWithinTwoMinutes}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                            isWithinTwoMinutes
+                              ? 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer shadow-xs'
+                              : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                          }`}
+                          title={isWithinTwoMinutes ? "Swap Winner (Available for 2 mins)" : "Swap Winner disabled (2 minutes elapsed)"}
                         >
-                          <Repeat className="w-3.5 h-3.5" /> Swap Winner
+                          <Repeat className="w-3.5 h-3.5" /> Swap Winner {!isWithinTwoMinutes && '(Locked)'}
                         </button>
                       </div>
                     </div>
@@ -2514,9 +2519,8 @@ export default function App() {
                 })}
               </div>
             )}
-          </div>
+          </section>
         )}
-
       </main>
     </div>
   );
