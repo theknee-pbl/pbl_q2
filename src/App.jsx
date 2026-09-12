@@ -38,7 +38,10 @@ import {
   User,
   Image as ImageIcon,
   CircleDot,
-  QrCode
+  QrCode,
+  Share2,
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 
 // --- DYNAMIC COURT / LEVEL BADGE COLOR HELPER ---
@@ -74,6 +77,10 @@ function PBLLogo({ className = "w-20 h-20" }) {
         src="./logo.jfif" 
         alt="PBL Queueing Logo" 
         className="w-full h-full object-cover"
+        onError={(e) => {
+          // Fallback if logo file doesn't load
+          e.target.style.display = 'none';
+        }}
       />
     </div>
   );
@@ -153,6 +160,10 @@ export default function App() {
   const [checkedInSearch, setCheckedInSearch] = useState('');
   const [poolSearch, setPoolSearch] = useState('');
 
+  // --- SHARE URL STATE ---
+  const [currentAppUrl, setCurrentAppUrl] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const [queueMode, setQueueMode] = useState(() => {
     return localStorage.getItem('pickleq_queue_mode') || 'independent';
   });
@@ -190,7 +201,7 @@ export default function App() {
       name: `Court 0${i + 1}`,
       teamA: [],
       teamB: [],
-      firstServe: null, // 'A' or 'B'
+      firstServe: null,
       isLive: false,
       startTime: null,
       totalPlayTimeSec: 0
@@ -222,6 +233,13 @@ export default function App() {
   });
 
   const fileInputRef = useRef(null);
+
+  // Set URL on mount for multi-device QR code sharing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentAppUrl(window.location.href);
+    }
+  }, []);
 
   // --- AUTH HANDLER ---
   const handleLogin = (e) => {
@@ -780,7 +798,6 @@ export default function App() {
       return;
     }
 
-    // Randomly pick 'A' or 'B' for First Serve
     const randomFirstServe = Math.random() < 0.5 ? 'A' : 'B';
 
     if (queueMode === 'independent') {
@@ -2049,38 +2066,26 @@ export default function App() {
                               <span>W/L: <strong className="text-emerald-600">{player.wins}W</strong>-<strong className="text-rose-600">{player.losses}L</strong></span>
                               <span>•</span>
                               <span>Level: <strong className="text-cyan-700">{player.level}</strong></span>
+                              <span>•</span>
+                              <span className="font-mono text-cyan-600">Wait: {formatWaitTime(player.checkedInAt)}</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 flex-wrap">
-                            {isOnCourt ? (
-                              <span className="px-3 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200">
-                                On Court
-                              </span>
-                            ) : (
-                              <span className="px-3 py-1 bg-cyan-50 text-cyan-700 font-bold text-xs rounded-xl border border-cyan-200 font-mono">
-                                Wait: {formatWaitTime(player.checkedInAt)}
-                              </span>
-                            )}
-
-                            <div className="flex items-center gap-1.5">
-                              {player.partnerId && !isOnCourt && (
-                                <button
-                                  onClick={() => handleUnlinkPartner(player.id)}
-                                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition cursor-pointer text-xs font-bold border border-amber-200"
-                                  title="Unlink Partner"
-                                >
-                                  Unlink
-                                </button>
-                              )}
+                          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+                            {player.partnerId && (
                               <button
-                                onClick={() => handleToggleCheckIn(player.id)}
-                                disabled={isOnCourt}
-                                className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-800 font-bold text-xs rounded-xl transition cursor-pointer border border-amber-200 shadow-2xs flex items-center gap-1"
+                                onClick={() => handleUnlinkPartner(player.id)}
+                                className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition cursor-pointer flex items-center gap-1"
                               >
-                                <UserX className="w-3.5 h-3.5" /> Check Out
+                                <Unlink className="w-3.5 h-3.5" /> Unlink
                               </button>
-                            </div>
+                            )}
+                            <button
+                              onClick={() => handleToggleCheckIn(player.id)}
+                              className="px-4 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition cursor-pointer flex items-center gap-1"
+                            >
+                              <UserX className="w-3.5 h-3.5" /> Check Out
+                            </button>
                           </div>
                         </div>
                       );
@@ -2089,13 +2094,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* MASTER ROSTER POOL SECTION */}
+            {/* AVAILABLE POOL / CHECKED OUT SECTION */}
             <div className="md:col-span-3 bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-cyan-600" />
                   <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">
-                    Full Roster Pool ({roster.filter(p => !p.isCheckedIn).length} Available)
+                    Available Roster Pool ({roster.filter(p => !p.isCheckedIn).length})
                   </h2>
                 </div>
 
@@ -2113,7 +2118,7 @@ export default function App() {
 
               <div className="space-y-3">
                 {roster.filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase())).length === 0 ? (
-                  <p className="text-xs text-gray-400 italic py-4 text-center">No unchecked players found matching search.</p>
+                  <p className="text-xs text-gray-400 italic py-4 text-center">No inactive players found matching search.</p>
                 ) : (
                   roster
                     .filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase()))
@@ -2132,22 +2137,30 @@ export default function App() {
                               )}
                             </div>
                             <div className="text-xs font-semibold text-gray-500 flex items-center gap-2">
-                              <span>W/L: <strong className="text-emerald-600">{player.wins}W</strong>-<strong className="text-rose-600">{player.losses}L</strong></span>
+                              <span>Played: <strong className="text-cyan-700">{player.gamesPlayed}</strong></span>
                               <span>•</span>
-                              <span>Level: <strong className="text-cyan-700">{player.level}</strong></span>
+                              <span>W/L: <strong className="text-emerald-600">{player.wins}W</strong>-<strong className="text-rose-600">{player.losses}L</strong></span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+                            {player.partnerId && (
+                              <button
+                                onClick={() => handleUnlinkPartner(player.id)}
+                                className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition cursor-pointer flex items-center gap-1"
+                              >
+                                <Unlink className="w-3.5 h-3.5" /> Unlink
+                              </button>
+                            )}
                             <button
                               onClick={() => handleToggleCheckIn(player.id)}
-                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-2xs flex items-center gap-1.5"
+                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1 shadow-2xs"
                             >
                               <UserCheck className="w-3.5 h-3.5" /> Check In
                             </button>
                             <button
                               onClick={() => handleRemoveFromRoster(player.id)}
-                              className="p-2 bg-gray-100 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-xl transition cursor-pointer"
+                              className="p-1.5 bg-gray-100 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-xl border border-gray-200 transition cursor-pointer"
                               title="Delete Player"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -2164,47 +2177,46 @@ export default function App() {
 
         {/* TAB 3: LEADERBOARD */}
         {activeTab === 'leaderboard' && (
-          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-amber-500" /> Leaderboard & Rankings
-                </h2>
-                <p className="text-gray-500 text-xs mt-1">
-                  Rankings calculated via Bayesian Win Rate, Activity Multipliers, and Head-to-Head Tiebreakers.
-                </p>
+          <section className="space-y-6 animate-in fade-in duration-200">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-2xs">
+              <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
+                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Filter:</span>
+                <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
+                  <button
+                    onClick={() => setLeaderboardFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${leaderboardFilter === 'all' ? 'bg-cyan-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    All Players
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardFilter('checkedIn')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${leaderboardFilter === 'checkedIn' ? 'bg-cyan-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    Checked-In Only
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
-                <div className="relative flex-1 md:w-60">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search leaderboard..."
-                    value={leaderboardSearch}
-                    onChange={(e) => setLeaderboardSearch(e.target.value)}
-                    className="w-full bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3.5 py-2 text-xs text-gray-900 outline-none transition"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-gray-400" />
-                  <select
-                    value={leaderboardFilter}
-                    onChange={(e) => setLeaderboardFilter(e.target.value)}
-                    className="bg-white border border-gray-200 text-gray-800 font-bold rounded-xl px-3 py-2 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
-                  >
-                    <option value="all">All Ranked Players</option>
-                    <option value="checkedIn">Currently Checked-In</option>
-                  </select>
-                </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search leaderboard..."
+                  value={leaderboardSearch}
+                  onChange={(e) => setLeaderboardSearch(e.target.value)}
+                  className="w-full bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 outline-none transition"
+                />
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500" /> Bayesian Leaderboard & Standings
+              </h2>
+
               {filteredLeaderboard.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                  No players match the leaderboard filter or search criteria.
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
+                  No players found matching your criteria.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -2216,19 +2228,19 @@ export default function App() {
                     return (
                       <div
                         key={player.id}
-                        className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-5 items-center gap-4 ${
-                          player.calculatedRank === 1 && player.isQualified
-                            ? 'border-amber-300 ring-2 ring-amber-300/20 bg-amber-50/20'
+                        className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-5 items-center gap-4 relative overflow-hidden ${
+                          player.calculatedRank === 1 
+                            ? 'border-amber-300 bg-amber-50/10 ring-1 ring-amber-300/20' 
                             : 'border-gray-200'
                         }`}
                       >
                         <div className="flex items-center gap-3.5 md:col-span-1">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 ${
-                            player.calculatedRank === 1 && player.isQualified
-                              ? 'bg-amber-400 text-amber-950 shadow-xs'
-                              : player.calculatedRank === 2 && player.isQualified
+                            player.calculatedRank === 1 
+                              ? 'bg-amber-400 text-amber-950 shadow-xs' 
+                              : player.calculatedRank === 2
                               ? 'bg-slate-300 text-slate-800'
-                              : player.calculatedRank === 3 && player.isQualified
+                              : player.calculatedRank === 3
                               ? 'bg-amber-800/20 text-amber-900'
                               : 'bg-gray-100 text-gray-700'
                           }`}>
@@ -2238,10 +2250,8 @@ export default function App() {
                           <div className="space-y-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
-                              {player.calculatedRank === 1 && player.isQualified && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
-                              {!player.isQualified && (
-                                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold" title="Provisional (< 5 games)">Prov</span>
-                              )}
+                              {player.calculatedRank === 1 && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
+                              {!player.isQualified && <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-semibold">Provisional</span>}
                             </div>
 
                             {partnerName && (
@@ -2260,8 +2270,8 @@ export default function App() {
 
                         <div className="space-y-1.5 md:col-span-1">
                           <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-gray-600">Raw Win Rate</span>
                             <span className="font-extrabold text-amber-600">{rawWinRatePercent}%</span>
-                            <span className="text-gray-400 text-[10px] font-medium">Bayes: {Math.round(player.bayesianWinRate * 100)}%</span>
                           </div>
                           <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200">
                             <div
@@ -2307,48 +2317,48 @@ export default function App() {
 
         {/* TAB 4: MATCH LOGS */}
         {activeTab === 'matchLogs' && (
-          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
-            <div className="pb-4 border-b border-gray-200">
+          <section className="space-y-6 animate-in fade-in duration-200">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <History className="w-6 h-6 text-cyan-600" /> Match History Logs
+                <History className="w-5 h-5 text-cyan-600" /> Completed Match History ({matchHistory.length})
               </h2>
-              <p className="text-gray-500 text-xs mt-1">
-                All recorded matches for this session. You can swap match winners if a score was logged incorrectly.
-              </p>
             </div>
 
             {matchHistory.length === 0 ? (
-              <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                No matches completed yet in this session.
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
+                No matches recorded in this session yet.
               </div>
             ) : (
               <div className="space-y-3">
                 {matchHistory.map((match) => (
-                  <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-2xs">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-extrabold text-cyan-700 bg-cyan-50 border border-cyan-100 px-2 py-0.5 rounded">
+                        <span className="font-extrabold text-xs bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-200">
                           Match #{match.matchNumber}
                         </span>
-                        <span className="text-xs font-bold text-gray-800">{match.courtName}</span>
-                        <span className="text-xs text-gray-400">• {formatDuration(match.durationSec)}</span>
-                        {match.firstServe && (
-                          <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">
-                            First Serve: Team {match.firstServe}
+                        <span className="font-bold text-sm text-gray-900">{match.courtName}</span>
+                        {queueMode === 'independent' && (
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border shadow-2xs ${getCourtLevelBadgeStyle(match.level)}`}>
+                            Level {match.level}
                           </span>
                         )}
                       </div>
-
-                      <div className="text-xs text-gray-700 flex flex-wrap gap-4 pt-1">
-                        <div><strong className="text-cyan-700">Team A:</strong> {match.teamA.join(' & ')} {match.winningTeam === 'A' && '👑'}</div>
-                        <div><strong className="text-rose-700">Team B:</strong> {match.teamB.join(' & ')} {match.winningTeam === 'B' && '👑'}</div>
+                      <div className="text-xs text-gray-500 font-mono">
+                        Duration: {formatDuration(match.durationSec)} • {new Date(match.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs font-bold px-3 py-1 rounded-xl ${match.winningTeam === 'A' ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
-                        Winner: Team {match.winningTeam}
-                      </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto">
+                      <div className={`p-2.5 rounded-xl border text-xs ${match.winningTeam === 'A' ? 'bg-emerald-50 border-emerald-300 font-bold' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className="text-[10px] text-gray-500 uppercase block font-bold">Team A {match.winningTeam === 'A' && '👑 (Winner)'}</span>
+                        <span className="text-gray-800">{match.teamA.join(' & ')}</span>
+                      </div>
+
+                      <div className={`p-2.5 rounded-xl border text-xs ${match.winningTeam === 'B' ? 'bg-emerald-50 border-emerald-300 font-bold' : 'bg-gray-50 border-gray-200'}`}>
+                        <span className="text-[10px] text-gray-500 uppercase block font-bold">Team B {match.winningTeam === 'B' && '👑 (Winner)'}</span>
+                        <span className="text-gray-800">{match.teamB.join(' & ')}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -2357,211 +2367,77 @@ export default function App() {
           </section>
         )}
 
-        {/* TAB 5: PLAYER QR VIEW (KIOSK) */}
+        {/* TAB 5: PLAYER QR VIEW (ACCESSIBLE FROM OTHER PHONES) */}
         {activeTab === 'playerKiosk' && (
-          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8 animate-in fade-in duration-200">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <QrCode className="w-6 h-6 text-cyan-600" /> Player Court Kiosk & Matchups
+          <section className="space-y-6 animate-in fade-in duration-200 max-w-4xl mx-auto">
+            <div className="bg-gray-50 border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm text-center space-y-6">
+              <div className="flex flex-col items-center space-y-2">
+                <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-2xl text-cyan-600">
+                  <Share2 className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 tracking-wide uppercase">
+                  Mobile & Multi-Device QR Access
                 </h2>
-                <p className="text-gray-500 text-xs mt-1">
-                  Scan the QR code below using any mobile device to view live court matchups and upcoming queue updates in real-time.
+                <p className="text-gray-500 text-xs max-w-lg mx-auto leading-relaxed">
+                  Scan this QR code with any smartphone camera connected to the same Wi-Fi or network to view live courts, queues, and leaderboards instantly on their device.
                 </p>
               </div>
 
-              <div className="bg-white border border-gray-200 px-4 py-2 rounded-xl flex items-center gap-2 shadow-2xs">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-xs font-bold text-gray-800">Live Kiosk Active</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-              {/* QR CODE CARD */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-2xs flex flex-col items-center text-center space-y-4">
-                <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-                  {/* Simulated High-Quality QR Code using an SVG Pattern */}
-                  <div className="w-48 h-48 bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-center relative shadow-inner">
-                    <svg viewBox="0 0 100 100" className="w-full h-full text-gray-900">
-                      {/* Corner Anchor Boxes */}
-                      <rect x="5" y="5" width="25" height="25" fill="currentColor" />
-                      <rect x="9" y="9" width="17" height="17" fill="white" />
-                      <rect x="13" y="13" width="9" height="9" fill="currentColor" />
-
-                      <rect x="70" y="5" width="25" height="25" fill="currentColor" />
-                      <rect x="74" y="9" width="17" height="17" fill="white" />
-                      <rect x="78" y="13" width="9" height="9" fill="currentColor" />
-
-                      <rect x="5" y="70" width="25" height="25" fill="currentColor" />
-                      <rect x="9" y="74" width="17" height="17" fill="white" />
-                      <rect x="13" y="78" width="9" height="9" fill="currentColor" />
-
-                      {/* Random Data Dots Simulation */}
-                      <rect x="35" y="8" width="5" height="5" fill="currentColor" />
-                      <rect x="45" y="5" width="8" height="5" fill="currentColor" />
-                      <rect x="57" y="8" width="5" height="5" fill="currentColor" />
-                      <rect x="35" y="18" width="6" height="6" fill="currentColor" />
-                      <rect x="46" y="15" width="5" height="8" fill="currentColor" />
-                      <rect x="55" y="18" width="8" height="5" fill="currentColor" />
-
-                      <rect x="8" y="38" width="5" height="6" fill="currentColor" />
-                      <rect x="18" y="35" width="6" height="5" fill="currentColor" />
-                      <rect x="15" y="45" width="5" height="8" fill="currentColor" />
-                      <rect x="5" y="55" width="8" height="5" fill="currentColor" />
-
-                      <rect x="35" y="35" width="8" height="8" fill="currentColor" />
-                      <rect x="48" y="32" width="5" height="12" fill="currentColor" />
-                      <rect x="58" y="35" width="6" height="6" fill="currentColor" />
-                      <rect x="35" y="48" width="6" height="5" fill="currentColor" />
-                      <rect x="44" y="48" width="5" height="5" fill="currentColor" />
-                      <rect x="55" y="48" width="9" height="8" fill="currentColor" />
-
-                      <rect x="70" y="35" width="6" height="6" fill="currentColor" />
-                      <rect x="80" y="38" width="5" height="5" fill="currentColor" />
-                      <rect x="90" y="35" width="5" height="8" fill="currentColor" />
-                      <rect x="75" y="45" width="8" height="6" fill="currentColor" />
-                      <rect x="88" y="45" width="7" height="5" fill="currentColor" />
-
-                      <rect x="35" y="65" width="5" height="6" fill="currentColor" />
-                      <rect x="45" y="60" width="8" height="8" fill="currentColor" />
-                      <rect x="58" y="65" width="6" height="5" fill="currentColor" />
-                      <rect x="35" y="78" width="8" height="5" fill="currentColor" />
-                      <rect x="48" y="75" width="5" height="8" fill="currentColor" />
-                      <rect x="55" y="85" width="8" height="8" fill="currentColor" />
-
-                      <rect x="70" y="70" width="8" height="5" fill="currentColor" />
-                      <rect x="82" y="70" width="6" height="8" fill="currentColor" />
-                      <rect x="92" y="75" width="5" height="5" fill="currentColor" />
-                      <rect x="70" y="82" width="5" height="8" fill="currentColor" />
-                      <rect x="78" y="82" width="6" height="6" fill="currentColor" />
-                      <rect x="88" y="85" width="7" height="8" fill="currentColor" />
-                    </svg>
-                  </div>
+              {/* QR CODE CONTAINER USING API */}
+              <div className="bg-white p-6 rounded-3xl border border-gray-200 inline-block shadow-md">
+                <div className="w-64 h-64 md:w-72 md:h-72 bg-white flex items-center justify-center p-2 rounded-xl">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(currentAppUrl)}`}
+                    alt="PBL Queue Access QR Code"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
                 </div>
-
-                <div className="space-y-1">
-                  <h3 className="font-extrabold text-sm text-gray-900">Scan to View Live Matchups</h3>
-                  <p className="text-xs text-gray-500">Point your smartphone camera at the code to open the live player display page instantly.</p>
-                </div>
-
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    alert("Kiosk URL copied to clipboard!");
-                  }}
-                  className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl transition cursor-pointer border border-gray-200 flex items-center justify-center gap-2 shadow-2xs"
-                >
-                  <Link className="w-4 h-4" /> Copy Kiosk Link
-                </button>
               </div>
 
-              {/* CURRENT & NEXT MATCHES PREVIEW CARDS */}
-              <div className="lg:col-span-2 space-y-6">
-                <div>
-                  <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-600" /> Current Live Court Matchups
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {courts.map((court) => {
-                      const isOccupied = court.teamA.length > 0 || court.teamB.length > 0;
-                      if (!isOccupied) return null;
-
-                      return (
-                        <div key={`kiosk-court-${court.id}`} className="bg-white border border-emerald-500/30 rounded-2xl p-4 shadow-2xs space-y-3">
-                          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-                            <span className="font-extrabold text-sm text-gray-900">{court.name}</span>
-                            <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="bg-cyan-50/50 border border-cyan-100 p-2 rounded-xl">
-                              <span className="font-bold text-cyan-700 block text-[10px] uppercase mb-1">Team A</span>
-                              {court.teamA.map(p => <div key={p.id} className="font-bold text-gray-800 truncate">{p.name}</div>)}
-                            </div>
-                            <div className="bg-rose-50/50 border border-rose-100 p-2 rounded-xl">
-                              <span className="font-bold text-rose-700 block text-[10px] uppercase mb-1">Team B</span>
-                              {court.teamB.map(p => <div key={p.id} className="font-bold text-gray-800 truncate">{p.name}</div>)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {courts.every(c => c.teamA.length === 0 && c.teamB.length === 0) && (
-                      <div className="col-span-2 bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic text-xs">
-                        No matches currently live on any court.
-                      </div>
-                    )}
-                  </div>
+              <div className="space-y-3 max-w-lg mx-auto">
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl p-2 pl-3.5 shadow-2xs">
+                  <input
+                    type="text"
+                    value={currentAppUrl}
+                    readOnly
+                    className="w-full text-xs font-mono text-gray-700 bg-transparent outline-none truncate"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentAppUrl);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }}
+                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-2xs"
+                  >
+                    {copiedLink ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy Link</>}
+                  </button>
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <ListOrdered className="w-4 h-4 text-cyan-600" /> Next Matches in Queue
-                  </h3>
-
-                  <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs">
-                    {queueMode === 'dependent' ? (
-                      <div className="space-y-3">
-                        {courts.slice(0, 2).map((court) => {
-                          const courtQueue = getQueueForCourtDependent(court.id);
-                          const nextMatch = getNextMatchFromQueue(courtQueue);
-
-                          return (
-                            <div key={`kiosk-next-dep-${court.id}`} className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                              <div>
-                                <span className="text-xs font-bold text-cyan-700 block mb-1">{court.name} Next Up Queue</span>
-                                {nextMatch.valid ? (
-                                  <div className="text-xs text-gray-800 font-semibold flex items-center gap-2 flex-wrap">
-                                    <span><strong className="text-cyan-700">A:</strong> {nextMatch.teamA.map(p => p.name).join(' & ')}</span>
-                                    <span>vs</span>
-                                    <span><strong className="text-rose-700">B:</strong> {nextMatch.teamB.map(p => p.name).join(' & ')}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-gray-400 italic">Waiting for at least 4 checked-in players...</span>
-                                )}
-                              </div>
-                              <span className="text-[11px] bg-white border border-gray-200 px-2.5 py-1 rounded-lg font-mono text-gray-600 shrink-0">
-                                {courtQueue.length} waiting
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {getPrioritizedCandidateMatchesIndependent().slice(0, 2).map((candidate, idx) => (
-                          <div key={`kiosk-next-indep-${idx}`} className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-bold text-cyan-700">Priority #{idx + 1} Queue</span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getCourtLevelBadgeStyle(candidate.level)}`}>
-                                  Level {candidate.level}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-800 font-semibold flex items-center gap-2 flex-wrap">
-                                <span><strong className="text-cyan-700">A:</strong> {candidate.matchData.teamA.map(p => p.name).join(' & ')}</span>
-                                <span>vs</span>
-                                <span><strong className="text-rose-700">B:</strong> {candidate.matchData.teamB.map(p => p.name).join(' & ')}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {getPrioritizedCandidateMatchesIndependent().length === 0 && (
-                          <p className="text-xs text-gray-400 italic py-4 text-center">No level queues currently have enough players ready.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                <div className="flex justify-center gap-3 pt-2">
+                  <a
+                    href={currentAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs rounded-xl border border-gray-200 transition flex items-center gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4" /> Open in New Tab
+                  </a>
                 </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left text-xs text-amber-900 space-y-1">
+                <span className="font-bold flex items-center gap-1.5">
+                  💡 Network Connection Tip:
+                </span>
+                <p className="leading-relaxed">
+                  If other phones cannot open the link, ensure your computer and the mobile devices are connected to the exact same Wi-Fi network, or deploy this app to a hosting platform (like Vercel, Netlify, or GitHub Pages) to provide a permanent public URL.
+                </p>
               </div>
             </div>
           </section>
         )}
+
       </main>
     </div>
   );
