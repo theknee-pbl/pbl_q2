@@ -541,6 +541,7 @@ export default function App() {
     reader.readAsText(file);
   };
 
+  // --- CHECK-IN HANDLER UPDATE ---
   const handleToggleCheckIn = (playerId) => {
     setRoster((prev) => {
       const target = prev.find((p) => p.id === playerId);
@@ -2181,13 +2182,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* PLAYER POOL SECTION */}
+            {/* UNCHECKED / COMPLETE PLAYER POOL SECTION */}
             <div className="md:col-span-3 bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-cyan-600" />
                   <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">
-                    Complete Player Pool ({roster.length})
+                    Available Player Pool ({roster.filter(p => !p.isCheckedIn).length})
                   </h2>
                 </div>
 
@@ -2204,11 +2205,11 @@ export default function App() {
               </div>
 
               <div className="space-y-3">
-                {roster.filter(p => p.name.toLowerCase().includes(poolSearch.toLowerCase())).length === 0 ? (
-                  <p className="text-xs text-gray-400 italic py-4 text-center">No players found matching search.</p>
+                {roster.filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase())).length === 0 ? (
+                  <p className="text-xs text-gray-400 italic py-4 text-center">No available players found matching search.</p>
                 ) : (
                   roster
-                    .filter(p => p.name.toLowerCase().includes(poolSearch.toLowerCase()))
+                    .filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase()))
                     .map((player) => {
                       const partnerName = getPartnerName(player.partnerId);
 
@@ -2246,13 +2247,9 @@ export default function App() {
 
                               <button
                                 onClick={() => handleToggleCheckIn(player.id)}
-                                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-                                  player.isCheckedIn 
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
-                                    : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-2xs'
-                                }`}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                               >
-                                {player.isCheckedIn ? <><UserCheck className="w-3.5 h-3.5" /> Checked In</> : <><UserPlus className="w-3.5 h-3.5" /> Check In</>}
+                                <UserPlus className="w-3.5 h-3.5" /> Check In
                               </button>
                             </div>
 
