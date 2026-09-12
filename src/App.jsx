@@ -2400,57 +2400,86 @@ const handleSwapMatchWinner = (matchId) => {
         {/* TAB 4: MATCH LOGS */}
         {activeTab === 'matchLogs' && (
           <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
-            <div className="pb-4 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <History className="w-6 h-6 text-cyan-600" /> Match History Logs
-              </h2>
-              <p className="text-gray-500 text-xs mt-1">
-                All recorded matches for this session. You can swap match winners if a score was logged incorrectly.
-              </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <History className="w-5 h-5 text-cyan-600" /> Match History Logs
+                </h2>
+                <p className="text-gray-500 text-xs mt-1">
+                  All recorded matches for this session. You can swap match winners if a score was logged incorrectly.
+                </p>
+              </div>
             </div>
 
             {matchHistory.length === 0 ? (
-              <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                No matches completed yet in this session.
+              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic">
+                No matches completed yet.
               </div>
             ) : (
-              <div className="space-y-3">
-                {matchHistory.map((match) => (
-                  <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-extrabold text-cyan-700 bg-cyan-50 border border-cyan-100 px-2 py-0.5 rounded">
-                          Match #{match.matchNumber}
-                        </span>
-                        <span className="text-xs font-bold text-gray-800">{match.courtName}</span>
-                        <span className="text-xs text-gray-400">• {formatDuration(match.durationSec)}</span>
-                        {match.firstServe && (
-                          <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">
+              <div className="space-y-4">
+                {matchHistory.map((match) => {
+                  const matchLevel = match.level ?? match.courtId ?? 1;
+                  const isWithinTwoMinutes = Date.now() - match.timestamp < 120000;
+
+                  return (
+                    <div 
+                      key={match.id} 
+                      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden"
+                    >
+                      <div className="space-y-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="text-xs font-black bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-100 shadow-2xs">
+                            Match #{match.matchNumber}
+                          </span>
+                          <span className="text-xs font-bold text-gray-700">
+                            {match.courtName}
+                          </span>
+                          <span className="text-xs text-gray-400 font-mono">
+                            • {formatDuration(match.durationSec)}
+                          </span>
+                          <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(matchLevel)}`}>
+                            Level {matchLevel}
+                          </span>
+                          <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg shadow-2xs">
                             First Serve: Team {match.firstServe}
                           </span>
-                        )}
+                        </div>
+
+                        <div className="flex items-center gap-6 text-xs pt-1 flex-wrap">
+                          <span className="font-bold text-cyan-900">
+                            Team A: <span className="font-normal text-gray-700">{match.teamA.join(' & ')}</span> {match.winningTeam === 'A' && '👑'}
+                          </span>
+                          <span className="font-bold text-rose-900">
+                            Team B: <span className="font-normal text-gray-700">{match.teamB.join(' & ')}</span> {match.winningTeam === 'B' && '👑'}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="text-xs text-gray-700 flex flex-wrap gap-4 pt-1">
-                        <div><strong className="text-cyan-700">Team A:</strong> {match.teamA.join(' & ')} {match.winningTeam === 'A' && '👑'}</div>
-                        <div><strong className="text-rose-700">Team B:</strong> {match.teamB.join(' & ')} {match.winningTeam === 'B' && '👑'}</div>
+                      <div className="flex items-center gap-3 shrink-0 self-end md:self-center pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 w-full md:w-auto justify-end">
+                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full border shadow-2xs ${
+                          match.winningTeam === 'A' 
+                            ? 'bg-cyan-50 border-cyan-200 text-cyan-800' 
+                            : 'bg-rose-50 border-rose-200 text-rose-800'
+                        }`}>
+                          Winner: Team {match.winningTeam}
+                        </span>
+
+                        <button
+                          onClick={() => handleSwapMatchWinner(match.id)}
+                          disabled={!isWithinTwoMinutes}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                            isWithinTwoMinutes
+                              ? 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer shadow-xs'
+                              : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                          }`}
+                          title={isWithinTwoMinutes ? "Swap Winner (Available for 2 mins)" : "Swap Winner disabled (2 minutes elapsed)"}
+                        >
+                          <Repeat className="w-3.5 h-3.5" /> Swap Winner {!isWithinTwoMinutes && '(Locked)'}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs font-bold px-3 py-1 rounded-xl ${match.winningTeam === 'A' ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
-                        Winner: Team {match.winningTeam}
-                      </span>
-                      <button
-                        onClick={() => handleSwapMatchWinner(match.id)}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-amber-50 text-gray-700 hover:text-amber-700 border border-gray-200 hover:border-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        title="Swap Winning Team"
-                      >
-                        <Repeat className="w-3.5 h-3.5" /> Swap Winner
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
