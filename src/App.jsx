@@ -37,7 +37,8 @@ import {
   Lock,
   User,
   Image as ImageIcon,
-  CircleDot
+  CircleDot,
+  QrCode
 } from 'lucide-react';
 
 // --- DYNAMIC COURT / LEVEL BADGE COLOR HELPER ---
@@ -1567,6 +1568,14 @@ export default function App() {
         >
           <History className="w-4 h-4" /> Match Logs
         </button>
+        <button
+          onClick={() => setActiveTab('playerKiosk')}
+          className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+            activeTab === 'playerKiosk' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+        >
+          <QrCode className="w-4 h-4" /> Player QR View
+        </button>
       </div>
 
       {/* MAIN CONTENT CONTAINER */}
@@ -2345,6 +2354,212 @@ export default function App() {
                 ))}
               </div>
             )}
+          </section>
+        )}
+
+        {/* TAB 5: PLAYER QR VIEW (KIOSK) */}
+        {activeTab === 'playerKiosk' && (
+          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 md:p-8 shadow-sm space-y-8 animate-in fade-in duration-200">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <QrCode className="w-6 h-6 text-cyan-600" /> Player Court Kiosk & Matchups
+                </h2>
+                <p className="text-gray-500 text-xs mt-1">
+                  Scan the QR code below using any mobile device to view live court matchups and upcoming queue updates in real-time.
+                </p>
+              </div>
+
+              <div className="bg-white border border-gray-200 px-4 py-2 rounded-xl flex items-center gap-2 shadow-2xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-xs font-bold text-gray-800">Live Kiosk Active</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              {/* QR CODE CARD */}
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-2xs flex flex-col items-center text-center space-y-4">
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                  {/* Simulated High-Quality QR Code using an SVG Pattern */}
+                  <div className="w-48 h-48 bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-center relative shadow-inner">
+                    <svg viewBox="0 0 100 100" className="w-full h-full text-gray-900">
+                      {/* Corner Anchor Boxes */}
+                      <rect x="5" y="5" width="25" height="25" fill="currentColor" />
+                      <rect x="9" y="9" width="17" height="17" fill="white" />
+                      <rect x="13" y="13" width="9" height="9" fill="currentColor" />
+
+                      <rect x="70" y="5" width="25" height="25" fill="currentColor" />
+                      <rect x="74" y="9" width="17" height="17" fill="white" />
+                      <rect x="78" y="13" width="9" height="9" fill="currentColor" />
+
+                      <rect x="5" y="70" width="25" height="25" fill="currentColor" />
+                      <rect x="9" y="74" width="17" height="17" fill="white" />
+                      <rect x="13" y="78" width="9" height="9" fill="currentColor" />
+
+                      {/* Random Data Dots Simulation */}
+                      <rect x="35" y="8" width="5" height="5" fill="currentColor" />
+                      <rect x="45" y="5" width="8" height="5" fill="currentColor" />
+                      <rect x="57" y="8" width="5" height="5" fill="currentColor" />
+                      <rect x="35" y="18" width="6" height="6" fill="currentColor" />
+                      <rect x="46" y="15" width="5" height="8" fill="currentColor" />
+                      <rect x="55" y="18" width="8" height="5" fill="currentColor" />
+
+                      <rect x="8" y="38" width="5" height="6" fill="currentColor" />
+                      <rect x="18" y="35" width="6" height="5" fill="currentColor" />
+                      <rect x="15" y="45" width="5" height="8" fill="currentColor" />
+                      <rect x="5" y="55" width="8" height="5" fill="currentColor" />
+
+                      <rect x="35" y="35" width="8" height="8" fill="currentColor" />
+                      <rect x="48" y="32" width="5" height="12" fill="currentColor" />
+                      <rect x="58" y="35" width="6" height="6" fill="currentColor" />
+                      <rect x="35" y="48" width="6" height="5" fill="currentColor" />
+                      <rect x="44" y="48" width="5" height="5" fill="currentColor" />
+                      <rect x="55" y="48" width="9" height="8" fill="currentColor" />
+
+                      <rect x="70" y="35" width="6" height="6" fill="currentColor" />
+                      <rect x="80" y="38" width="5" height="5" fill="currentColor" />
+                      <rect x="90" y="35" width="5" height="8" fill="currentColor" />
+                      <rect x="75" y="45" width="8" height="6" fill="currentColor" />
+                      <rect x="88" y="45" width="7" height="5" fill="currentColor" />
+
+                      <rect x="35" y="65" width="5" height="6" fill="currentColor" />
+                      <rect x="45" y="60" width="8" height="8" fill="currentColor" />
+                      <rect x="58" y="65" width="6" height="5" fill="currentColor" />
+                      <rect x="35" y="78" width="8" height="5" fill="currentColor" />
+                      <rect x="48" y="75" width="5" height="8" fill="currentColor" />
+                      <rect x="55" y="85" width="8" height="8" fill="currentColor" />
+
+                      <rect x="70" y="70" width="8" height="5" fill="currentColor" />
+                      <rect x="82" y="70" width="6" height="8" fill="currentColor" />
+                      <rect x="92" y="75" width="5" height="5" fill="currentColor" />
+                      <rect x="70" y="82" width="5" height="8" fill="currentColor" />
+                      <rect x="78" y="82" width="6" height="6" fill="currentColor" />
+                      <rect x="88" y="85" width="7" height="8" fill="currentColor" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-sm text-gray-900">Scan to View Live Matchups</h3>
+                  <p className="text-xs text-gray-500">Point your smartphone camera at the code to open the live player display page instantly.</p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert("Kiosk URL copied to clipboard!");
+                  }}
+                  className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl transition cursor-pointer border border-gray-200 flex items-center justify-center gap-2 shadow-2xs"
+                >
+                  <Link className="w-4 h-4" /> Copy Kiosk Link
+                </button>
+              </div>
+
+              {/* CURRENT & NEXT MATCHES PREVIEW CARDS */}
+              <div className="lg:col-span-2 space-y-6">
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-emerald-600" /> Current Live Court Matchups
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {courts.map((court) => {
+                      const isOccupied = court.teamA.length > 0 || court.teamB.length > 0;
+                      if (!isOccupied) return null;
+
+                      return (
+                        <div key={`kiosk-court-${court.id}`} className="bg-white border border-emerald-500/30 rounded-2xl p-4 shadow-2xs space-y-3">
+                          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                            <span className="font-extrabold text-sm text-gray-900">{court.name}</span>
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-cyan-50/50 border border-cyan-100 p-2 rounded-xl">
+                              <span className="font-bold text-cyan-700 block text-[10px] uppercase mb-1">Team A</span>
+                              {court.teamA.map(p => <div key={p.id} className="font-bold text-gray-800 truncate">{p.name}</div>)}
+                            </div>
+                            <div className="bg-rose-50/50 border border-rose-100 p-2 rounded-xl">
+                              <span className="font-bold text-rose-700 block text-[10px] uppercase mb-1">Team B</span>
+                              {court.teamB.map(p => <div key={p.id} className="font-bold text-gray-800 truncate">{p.name}</div>)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {courts.every(c => c.teamA.length === 0 && c.teamB.length === 0) && (
+                      <div className="col-span-2 bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic text-xs">
+                        No matches currently live on any court.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <ListOrdered className="w-4 h-4 text-cyan-600" /> Next Matches in Queue
+                  </h3>
+
+                  <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs">
+                    {queueMode === 'dependent' ? (
+                      <div className="space-y-3">
+                        {courts.slice(0, 2).map((court) => {
+                          const courtQueue = getQueueForCourtDependent(court.id);
+                          const nextMatch = getNextMatchFromQueue(courtQueue);
+
+                          return (
+                            <div key={`kiosk-next-dep-${court.id}`} className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                              <div>
+                                <span className="text-xs font-bold text-cyan-700 block mb-1">{court.name} Next Up Queue</span>
+                                {nextMatch.valid ? (
+                                  <div className="text-xs text-gray-800 font-semibold flex items-center gap-2 flex-wrap">
+                                    <span><strong className="text-cyan-700">A:</strong> {nextMatch.teamA.map(p => p.name).join(' & ')}</span>
+                                    <span>vs</span>
+                                    <span><strong className="text-rose-700">B:</strong> {nextMatch.teamB.map(p => p.name).join(' & ')}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-400 italic">Waiting for at least 4 checked-in players...</span>
+                                )}
+                              </div>
+                              <span className="text-[11px] bg-white border border-gray-200 px-2.5 py-1 rounded-lg font-mono text-gray-600 shrink-0">
+                                {courtQueue.length} waiting
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {getPrioritizedCandidateMatchesIndependent().slice(0, 2).map((candidate, idx) => (
+                          <div key={`kiosk-next-indep-${idx}`} className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-bold text-cyan-700">Priority #{idx + 1} Queue</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getCourtLevelBadgeStyle(candidate.level)}`}>
+                                  Level {candidate.level}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-800 font-semibold flex items-center gap-2 flex-wrap">
+                                <span><strong className="text-cyan-700">A:</strong> {candidate.matchData.teamA.map(p => p.name).join(' & ')}</span>
+                                <span>vs</span>
+                                <span><strong className="text-rose-700">B:</strong> {candidate.matchData.teamB.map(p => p.name).join(' & ')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {getPrioritizedCandidateMatchesIndependent().length === 0 && (
+                          <p className="text-xs text-gray-400 italic py-4 text-center">No level queues currently have enough players ready.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
         )}
       </main>
