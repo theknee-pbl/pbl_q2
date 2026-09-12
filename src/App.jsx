@@ -998,14 +998,15 @@ export default function App() {
     });
   };
 
-  // --- FEATURE: SWAP MATCH WINNER HANDLER ---
-  const handleSwapMatchWinner = (matchId) => {
+const handleSwapMatchWinner = (matchId) => {
     const targetMatch = matchHistory.find(m => m.id === matchId);
     if (!targetMatch) return;
 
     const newWinningTeam = targetMatch.winningTeam === 'A' ? 'B' : 'A';
+    const matchLevel = targetMatch.level ?? targetMatch.courtId ?? 1;
+    const isLowest = matchLevel === 1;
+    const isHighest = matchLevel === totalLevelCount;
 
-    // Update player records and queue assignments in roster
     setRoster(prevRoster => {
       const teamAIds = targetMatch.teamAPlayerIds;
       const teamBIds = targetMatch.teamBPlayerIds;
@@ -1020,24 +1021,35 @@ export default function App() {
         let assignedCourtUpdate = player.assignedCourt;
 
         if (oldWinners.includes(player.id)) {
-          winsChange -= 1;
-          lossesChange += 1;
+          winsChange = -1;
+          lossesChange = 1;
           if (queueMode === 'independent') {
-            levelChange = targetMatch.winningTeam === 'A' ? -1 : 1; 
+            if (totalLevelCount <= 1) {
+              levelChange = 0;
+            } else if (isLowest || isHighest) {
+              levelChange = -1;
+            } else {
+              levelChange = -2;
+            }
           } else {
-            // Revert court movement for dependent mode (old winners went up/down, now they do the opposite)
             const courtId = targetMatch.courtId;
-            const prevNextCourt = courtId === 1 ? 2 : (courtId === totalCourtCount ? courtId : courtId + 1);
+            const prevNextCourt = courtId === 1 ? 2 : (courtId === totalLevelCount ? courtId : courtId + 1);
             assignedCourtUpdate = prevNextCourt;
           }
         } else if (oldLosers.includes(player.id)) {
-          winsChange += 1;
-          lossesChange -= 1;
+          winsChange = 1;
+          lossesChange = -1;
           if (queueMode === 'independent') {
-            levelChange = targetMatch.winningTeam === 'A' ? 1 : -1;
+            if (totalLevelCount <= 1) {
+              levelChange = 0;
+            } else if (isLowest || isHighest) {
+              levelChange = 1;
+            } else {
+              levelChange = 2;
+            }
           } else {
             const courtId = targetMatch.courtId;
-            const prevNextCourt = courtId === 1 ? 1 : (courtId === totalCourtCount ? courtId - 1 : courtId);
+            const prevNextCourt = courtId === 1 ? 1 : (courtId === totalLevelCount ? courtId - 1 : courtId);
             assignedCourtUpdate = prevNextCourt;
           }
         }
@@ -1072,7 +1084,7 @@ export default function App() {
             level: newLevel,
             assignedCourt: assignedCourtUpdate,
             headToHead: updatedH2H,
-            checkedInAt: Date.now() // Reset check-in timestamp to reflect queue priority update upon swap
+            checkedInAt: Date.now()
           };
         }
         return player;
