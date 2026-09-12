@@ -998,7 +998,7 @@ export default function App() {
     });
   };
 
-const handleSwapMatchWinner = (matchId) => {
+  const handleSwapMatchWinner = (matchId) => {
     const targetMatch = matchHistory.find(m => m.id === matchId);
     if (!targetMatch) return;
 
@@ -1151,7 +1151,7 @@ const handleSwapMatchWinner = (matchId) => {
               <Crown className="w-8 h-8 text-amber-700 fill-amber-500 animate-bounce" />
             </div>
             <div className="space-y-2 w-full my-1">
-              <h3 className="font-extrabold text-gray-900 text-lg tracking-wide">{namesJoined}</h3>
+              <h3 className="font-extrabold text-gray-900 text-lg tracking-wide break-words">{namesJoined}</h3>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{queueMode === 'dependent' ? 'Court' : 'Level'}</span>
                 <span className={`text-xs font-extrabold px-3 py-0.5 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(courtOrLevelVal)}`}>
@@ -1179,7 +1179,7 @@ const handleSwapMatchWinner = (matchId) => {
               <Medal className="w-6 h-6 text-slate-600" />
             </div>
             <div className="space-y-2 w-full my-1">
-              <h3 className="font-bold text-gray-900 text-base">{namesJoined}</h3>
+              <h3 className="font-bold text-gray-900 text-base break-words">{namesJoined}</h3>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{queueMode === 'dependent' ? 'Court' : 'Level'}</span>
                 <span className={`text-xs font-extrabold px-3 py-0.5 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(courtOrLevelVal)}`}>
@@ -1207,7 +1207,7 @@ const handleSwapMatchWinner = (matchId) => {
               <Medal className="w-6 h-6 text-amber-800" />
             </div>
             <div className="space-y-2 w-full my-1">
-              <h3 className="font-bold text-gray-900 text-base">{namesJoined}</h3>
+              <h3 className="font-bold text-gray-900 text-base break-words">{namesJoined}</h3>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{queueMode === 'dependent' ? 'Court' : 'Level'}</span>
                 <span className={`text-xs font-extrabold px-3 py-0.5 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(courtOrLevelVal)}`}>
@@ -1228,7 +1228,7 @@ const handleSwapMatchWinner = (matchId) => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans antialiased">
-        <div className="bg-white border border-gray-200 rounded-3xl max-w-md w-full p-8 shadow-xl relative">
+        <div className="bg-white border border-gray-200 rounded-3xl max-w-md w-full p-6 md:p-8 shadow-xl relative">
           <div className="flex flex-col items-center text-center mb-6">
             <PBLLogo className="w-20 h-20 mb-3 shadow-sm" />
             <h1 className="text-2xl font-extrabold tracking-wider text-gray-900 uppercase">
@@ -1290,25 +1290,25 @@ const handleSwapMatchWinner = (matchId) => {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 p-4 md:p-8 font-sans antialiased">
+    <div className="min-h-screen bg-white text-gray-900 p-3 sm:p-4 md:p-8 font-sans antialiased overflow-x-hidden">
       {/* HEADER */}
-      <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center pb-6 mb-8 border-b border-gray-200 gap-4">
-        <div className="flex items-center gap-4">
-          <PBLLogo className="w-24 h-24" />
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-wider text-gray-900 uppercase">
+      <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center pb-6 mb-6 md:mb-8 border-b border-gray-200 gap-4">
+        <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
+          <PBLLogo className="w-16 h-16 md:w-24 md:h-24" />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl md:text-3xl font-extrabold tracking-wider text-gray-900 uppercase truncate">
               PBL Queueing
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">
               {queueMode === 'independent' ? 'Court-Independent Level Queue & Rating System' : 'Highest Court Priority Ladder & Rating System'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap w-full md:w-auto justify-start md:justify-end">
           <button
             onClick={handleToggleSession}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition cursor-pointer shadow-md ${
+            className={`px-4 md:px-5 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center gap-2 transition cursor-pointer shadow-md ${
               sessionActive 
                 ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/10' 
                 : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/10'
@@ -1321,28 +1321,28 @@ const handleSwapMatchWinner = (matchId) => {
             )}
           </button>
 
-          <div className="bg-gray-50 border border-gray-200 px-4 py-2 rounded-xl flex items-center gap-3 shadow-2xs">
-            <Flame className="w-5 h-5 text-amber-500" />
+          <div className="bg-gray-50 border border-gray-200 px-3 md:px-4 py-1.5 md:py-2 rounded-xl flex items-center gap-2.5 shadow-2xs">
+            <Flame className="w-4 h-4 md:w-5 md:h-5 text-amber-500" />
             <div>
-              <div className="text-[10px] text-gray-500 font-medium">MATCHES</div>
-              <div className="text-base font-bold text-gray-900">{totalMatches}</div>
+              <div className="text-[9px] md:text-[10px] text-gray-500 font-medium">MATCHES</div>
+              <div className="text-sm md:text-base font-bold text-gray-900">{totalMatches}</div>
             </div>
           </div>
 
           <button
             onClick={handleLogout}
-            className="p-2.5 bg-gray-50 hover:bg-amber-50 text-gray-600 hover:text-amber-600 border border-gray-200 hover:border-amber-200 rounded-xl transition cursor-pointer"
+            className="p-2 md:p-2.5 bg-gray-50 hover:bg-amber-50 text-gray-600 hover:text-amber-600 border border-gray-200 hover:border-amber-200 rounded-xl transition cursor-pointer"
             title="Log Out"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4 md:w-5 md:h-5" />
           </button>
 
           <button
             onClick={handleResetSession}
-            className="p-2.5 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 border border-gray-200 hover:border-rose-200 rounded-xl transition cursor-pointer"
+            className="p-2 md:p-2.5 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 border border-gray-200 hover:border-rose-200 rounded-xl transition cursor-pointer"
             title="Reset Session"
           >
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
           </button>
         </div>
       </header>
@@ -1415,10 +1415,10 @@ const handleSwapMatchWinner = (matchId) => {
 
       {/* SUMMARY MODAL */}
       {showSummaryModal && (
-        <section className="max-w-7xl mx-auto mb-8 bg-gray-50 border border-amber-500/40 rounded-3xl p-6 md:p-8 shadow-xl relative animate-in fade-in slide-in-from-top-4 duration-300">
+        <section className="max-w-7xl mx-auto mb-8 bg-gray-50 border border-amber-500/40 rounded-3xl p-4 md:p-8 shadow-xl relative animate-in fade-in slide-in-from-top-4 duration-300">
           <button
             onClick={() => setShowSummaryModal(false)}
-            className="absolute top-5 right-5 p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full transition cursor-pointer z-10"
+            className="absolute top-4 right-4 p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full transition cursor-pointer z-10"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1477,7 +1477,7 @@ const handleSwapMatchWinner = (matchId) => {
                               : 'border-gray-200'
                           }`}
                         >
-                          <div className="flex items-center gap-3.5 md:col-span-1">
+                          <div className="flex items-center gap-3.5 md:col-span-1 min-w-0">
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 ${
                               player.calculatedRank === 1 
                                 ? 'bg-amber-400 text-amber-950 shadow-xs' 
@@ -1490,14 +1490,14 @@ const handleSwapMatchWinner = (matchId) => {
                               #{player.calculatedRank}
                             </div>
 
-                            <div className="space-y-1 min-w-0">
+                            <div className="space-y-1 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
                                 {player.calculatedRank === 1 && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
                               </div>
 
                               {partnerName && (
-                                <div className="text-[11px] font-semibold text-cyan-700 flex items-center gap-1">
+                                <div className="text-[11px] font-semibold text-cyan-700 flex items-center gap-1 truncate">
                                   <Link className="w-3 h-3 shrink-0" /> Partner: {partnerName}
                                 </div>
                               )}
@@ -1583,15 +1583,15 @@ const handleSwapMatchWinner = (matchId) => {
       )}
 
       {/* SYSTEM SETTINGS */}
-      <div className="max-w-7xl mx-auto mb-4 bg-white border border-gray-200 rounded-2xl p-3 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-2xs">
-        <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto justify-end">
-          <div className="flex items-center gap-1.5">
-            <GitBranch className="w-3.5 h-3.5 text-cyan-600" />
-            <label className="text-xs font-semibold text-gray-900">Match Mode:</label>
+      <div className="max-w-7xl mx-auto mb-4 bg-white border border-gray-200 rounded-2xl p-3 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 shadow-2xs">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap w-full justify-start">
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <GitBranch className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+            <label className="text-xs font-semibold text-gray-900 whitespace-nowrap">Match Mode:</label>
             <select
               value={queueMode}
               onChange={(e) => setQueueMode(e.target.value)}
-              className="bg-white border border-gray-200 text-cyan-700 font-bold rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
+              className="bg-white border border-gray-200 text-cyan-700 font-bold rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs flex-1 sm:flex-initial truncate"
             >
               <option value="independent">Court-Independent (Level / Longest Wait)</option>
               <option value="dependent">Court-Dependent (Highest Court Priority & Ladder)</option>
@@ -1599,7 +1599,7 @@ const handleSwapMatchWinner = (matchId) => {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <LayoutGrid className="w-3.5 h-3.5 text-cyan-600" />
+            <LayoutGrid className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
             <label className="text-xs font-semibold text-gray-900">Courts:</label>
             <select
               value={totalCourtCount}
@@ -1616,7 +1616,7 @@ const handleSwapMatchWinner = (matchId) => {
 
           {queueMode === 'independent' && (
             <div className="flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-cyan-600" />
+              <Layers className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
               <label className="text-xs font-semibold text-gray-900">Levels:</label>
               <select
                 value={totalLevelCount}
@@ -1635,10 +1635,10 @@ const handleSwapMatchWinner = (matchId) => {
       </div>
 
       {/* NAVIGATION TABS */}
-      <div className="max-w-7xl mx-auto mb-8 bg-gray-50 border border-gray-200 rounded-2xl p-1.5 flex items-center justify-start gap-2 shadow-2xs overflow-x-auto">
+      <div className="max-w-7xl mx-auto mb-8 bg-gray-50 border border-gray-200 rounded-2xl p-1.5 flex items-center justify-start gap-2 shadow-2xs overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('courts')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+          className={`px-4 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
             activeTab === 'courts' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
@@ -1646,7 +1646,7 @@ const handleSwapMatchWinner = (matchId) => {
         </button>
         <button
           onClick={() => setActiveTab('players')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+          className={`px-4 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
             activeTab === 'players' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
@@ -1654,7 +1654,7 @@ const handleSwapMatchWinner = (matchId) => {
         </button>
         <button
           onClick={() => setActiveTab('leaderboard')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+          className={`px-4 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
             activeTab === 'leaderboard' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
@@ -1662,7 +1662,7 @@ const handleSwapMatchWinner = (matchId) => {
         </button>
         <button
           onClick={() => setActiveTab('matchLogs')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
+          className={`px-4 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
             activeTab === 'matchLogs' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           }`}
         >
@@ -1677,14 +1677,14 @@ const handleSwapMatchWinner = (matchId) => {
         {activeTab === 'courts' && (
           <div className="space-y-8 animate-in fade-in duration-200">
             {queueMode === 'independent' && (
-              <div className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-2xs relative overflow-hidden">
+              <div className="bg-gray-50 border border-gray-200 rounded-3xl p-4 md:p-6 shadow-2xs relative overflow-hidden">
                 <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-200 relative z-10">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600">
+                    <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600 shrink-0">
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div>
-                      <h2 className="text-base font-extrabold tracking-wide uppercase text-gray-900">
+                      <h2 className="text-sm md:text-base font-extrabold tracking-wide uppercase text-gray-900">
                         Possible Next Matches
                       </h2>
                       <p className="text-gray-500 text-[11px]">Top priority matches ready to be pulled onto the next available court across all levels</p>
@@ -1712,7 +1712,7 @@ const handleSwapMatchWinner = (matchId) => {
                           const { matchData, level } = candidate;
 
                           return (
-                            <div key={`candidate-match-${level}-${index}`} className="bg-white rounded-2xl p-5 border border-gray-200 shadow-2xs relative overflow-hidden flex flex-col justify-between">
+                            <div key={`candidate-match-${level}-${index}`} className="bg-white rounded-2xl p-4 md:p-5 border border-gray-200 shadow-2xs relative overflow-hidden flex flex-col justify-between">
                               <div className={`absolute top-0 left-0 right-0 h-1 ${index === 0 ? 'bg-cyan-500' : 'bg-gray-300'}`} />
                               
                               <div className="flex justify-between items-center mb-4">
@@ -1735,7 +1735,7 @@ const handleSwapMatchWinner = (matchId) => {
                                     {matchData.teamA.map((p) => (
                                       <div key={p.id} className="text-xs font-bold text-gray-800 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-200">
                                         <span className="truncate">{p.name}</span>
-                                        {p.partnerId && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-mono border border-amber-200">Linked</span>}
+                                        {p.partnerId && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-mono border border-amber-200 shrink-0 ml-1">Linked</span>}
                                       </div>
                                     ))}
                                   </div>
@@ -1750,7 +1750,7 @@ const handleSwapMatchWinner = (matchId) => {
                                     {matchData.teamB.map((p) => (
                                       <div key={p.id} className="text-xs font-bold text-gray-800 flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-gray-200">
                                         <span className="truncate">{p.name}</span>
-                                        {p.partnerId && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-mono border border-amber-200">Linked</span>}
+                                        {p.partnerId && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-mono border border-amber-200 shrink-0 ml-1">Linked</span>}
                                       </div>
                                     ))}
                                   </div>
@@ -1768,7 +1768,7 @@ const handleSwapMatchWinner = (matchId) => {
             
             <div className="space-y-8">
               <div className="space-y-4">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
                   <Play className="w-5 h-5 text-emerald-600 fill-emerald-600" /> Courts {queueMode === 'dependent' && <span className="text-xs text-amber-600 font-semibold">(Court 01 is Highest Priority)</span>}
                 </h2>
 
@@ -1782,7 +1782,7 @@ const handleSwapMatchWinner = (matchId) => {
                       <div key={court.id} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
                         <div>
                           <div className="flex flex-col gap-2 mb-3 pb-3 border-b border-gray-200">
-                            <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                            <div className="flex flex-wrap justify-between items-center gap-2 mb-1">
                               {editingCourtId === court.id ? (
                                 <div className="flex items-center gap-1.5 w-full sm:w-auto flex-1 min-w-[200px]">
                                   <input
@@ -1813,7 +1813,7 @@ const handleSwapMatchWinner = (matchId) => {
                               )}
                             </div>
 
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center flex-wrap gap-2">
                               {queueMode === 'independent' ? (
                                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border shadow-2xs ${getCourtLevelBadgeStyle(court.level)}`}>
                                   Level {court.level}
@@ -1834,7 +1834,7 @@ const handleSwapMatchWinner = (matchId) => {
                               {court.firstServe && (
                                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs font-bold text-amber-900">
                                   <span className="flex items-center gap-1.5">
-                                    <CircleDot className="w-4 h-4 text-amber-600 animate-spin" /> First Serve:
+                                    <CircleDot className="w-4 h-4 text-amber-600 animate-spin shrink-0" /> First Serve:
                                   </span>
                                   <span className={`px-2 py-0.5 rounded text-[11px] ${court.firstServe === 'A' ? 'bg-cyan-600 text-white' : 'bg-rose-600 text-white'}`}>
                                     Team {court.firstServe}
@@ -1843,7 +1843,7 @@ const handleSwapMatchWinner = (matchId) => {
                               )}
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="bg-white border-l-4 border-cyan-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs">
+                                <div className="bg-white border-l-4 border-cyan-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs min-w-0">
                                   <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block mb-1">Team A</span>
                                   {court.teamA.map((p) => (
                                     <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
@@ -1852,13 +1852,13 @@ const handleSwapMatchWinner = (matchId) => {
                                   ))}
                                   <button
                                     onClick={() => handleFinishMatch(court.id, 'A')}
-                                    className="mt-2 w-full py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[11px] rounded border border-cyan-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                                    className="mt-2 w-full py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[11px] rounded border border-cyan-200 transition flex items-center justify-center gap-1 cursor-pointer"
                                   >
                                     <CheckCircle2 className="w-3 h-3" /> Team A Wins
                                   </button>
                                 </div>
 
-                                <div className="bg-white border-l-4 border-rose-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs">
+                                <div className="bg-white border-l-4 border-rose-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs min-w-0">
                                   <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block mb-1">Team B</span>
                                   {court.teamB.map((p) => (
                                     <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
@@ -1867,7 +1867,7 @@ const handleSwapMatchWinner = (matchId) => {
                                   ))}
                                   <button
                                     onClick={() => handleFinishMatch(court.id, 'B')}
-                                    className="mt-2 w-full py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                                    className="mt-2 w-full py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition flex items-center justify-center gap-1 cursor-pointer"
                                   >
                                     <CheckCircle2 className="w-3 h-3" /> Team B Wins
                                   </button>
@@ -1881,7 +1881,7 @@ const handleSwapMatchWinner = (matchId) => {
                                 disabled={!sessionActive || (queueMode === 'dependent' && courtQueue.length < 4)}
                                 className="w-full py-2 px-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                               >
-                                <Sparkles className="w-3.5 h-3.5" /> Pull Next Match to {court.name} {queueMode === 'dependent' ? `(${courtQueue.length}/4)` : ''}
+                                <Sparkles className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Pull Next Match to {court.name} {queueMode === 'dependent' ? `(${courtQueue.length}/4)` : ''}</span>
                               </button>
                             </div>
                           )}
@@ -1894,12 +1894,12 @@ const handleSwapMatchWinner = (matchId) => {
                             </div>
                             <div className="space-y-1 max-h-[120px] overflow-y-auto">
                               {courtQueue.map((p, idx) => (
-                                <div key={p.id} className="flex justify-between items-center px-2 py-1 bg-white border border-gray-200 rounded text-[11px]">
-                                  <span className="font-medium text-gray-800 truncate flex items-center gap-1">
-                                    #{idx + 1} {p.name} 
+                                <div key={p.id} className="flex justify-between items-center px-2 py-1 bg-white border border-gray-200 rounded text-[11px] gap-1">
+                                  <span className="font-medium text-gray-800 truncate flex items-center gap-1 min-w-0 flex-1">
+                                    <span className="shrink-0">#{idx + 1}</span> <span className="truncate">{p.name}</span> 
                                     {p.partnerId && <Link className="w-3 h-3 text-cyan-600 shrink-0" title="Has Fixed Partner" />}
                                   </span>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 shrink-0">
                                     <div className="flex items-center gap-0.5">
                                       <button 
                                         onClick={() => handleReorderQueue(p.id, 'up', courtQueue)} 
@@ -1931,7 +1931,7 @@ const handleSwapMatchWinner = (matchId) => {
 
               {queueMode === 'independent' && (
                 <div className="space-y-4 pt-4 border-t border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
                     <Layers className="w-5 h-5 text-cyan-600" /> Level Queues (Waiting Lists)
                   </h2>
 
@@ -1955,15 +1955,15 @@ const handleSwapMatchWinner = (matchId) => {
                             ) : (
                               <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
                                 {levelQueue.map((player, idx) => (
-                                  <div key={player.id} className="flex justify-between items-center px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs">
-                                    <div className="flex items-center gap-2 truncate">
-                                      <span className="font-bold text-gray-400">#{idx + 1}</span>
-                                      <span className="font-bold text-gray-800 truncate flex items-center gap-1">
-                                        {player.name} 
+                                  <div key={player.id} className="flex justify-between items-center px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs gap-1">
+                                    <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                                      <span className="font-bold text-gray-400 shrink-0">#{idx + 1}</span>
+                                      <span className="font-bold text-gray-800 truncate flex items-center gap-1 min-w-0">
+                                        <span className="truncate">{player.name}</span> 
                                         {player.partnerId && <Link className="w-3 h-3 text-amber-500 shrink-0" title="Has Fixed Partner" />}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 shrink-0">
                                       <div className="flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded px-1">
                                         <button 
                                           onClick={() => handleReorderQueue(player.id, 'up', levelQueue)} 
@@ -2004,7 +2004,7 @@ const handleSwapMatchWinner = (matchId) => {
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-200">
             <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col justify-between shadow-2xs">
               <div>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <UserPlus className="w-5 h-5 text-cyan-600" /> Add Player
                   </h2>
@@ -2018,7 +2018,7 @@ const handleSwapMatchWinner = (matchId) => {
                 </div>
 
                 <form onSubmit={handleAddPlayer} className="space-y-3">
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       placeholder="Player Name"
@@ -2044,11 +2044,11 @@ const handleSwapMatchWinner = (matchId) => {
                 </h2>
 
                 <form onSubmit={handleLinkPartners} className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <select
                       value={partnerP1}
                       onChange={(e) => setPartnerP1(e.target.value)}
-                      className="bg-white border border-gray-200 text-xs rounded-xl px-2.5 py-2.5 font-semibold text-gray-800 outline-none cursor-pointer"
+                      className="bg-white border border-gray-200 text-xs rounded-xl px-2.5 py-2.5 font-semibold text-gray-800 outline-none cursor-pointer w-full"
                     >
                       <option value="">Player 1</option>
                       {roster.map((p) => (
@@ -2059,7 +2059,7 @@ const handleSwapMatchWinner = (matchId) => {
                     <select
                       value={partnerP2}
                       onChange={(e) => setPartnerP2(e.target.value)}
-                      className="bg-white border border-gray-200 text-xs rounded-xl px-2.5 py-2.5 font-semibold text-gray-800 outline-none cursor-pointer"
+                      className="bg-white border border-gray-200 text-xs rounded-xl px-2.5 py-2.5 font-semibold text-gray-800 outline-none cursor-pointer w-full"
                     >
                       <option value="">Player 2</option>
                       {roster.map((p) => (
@@ -2128,23 +2128,23 @@ const handleSwapMatchWinner = (matchId) => {
 
                       return (
                         <div key={`ci-${player.id}`} className="bg-white border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
-                          <div className="space-y-1 min-w-0">
+                          <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
                               {partnerName && (
-                                <span className="text-[11px] text-cyan-700 font-semibold flex items-center gap-1 bg-cyan-50 px-2 py-0.5 rounded-md border border-cyan-100">
-                                  <Link className="w-3 h-3" /> Partner: {partnerName}
+                                <span className="text-[11px] text-cyan-700 font-semibold flex items-center gap-1 bg-cyan-50 px-2 py-0.5 rounded-md border border-cyan-100 truncate">
+                                  <Link className="w-3 h-3 shrink-0" /> Partner: {partnerName}
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs font-semibold text-gray-500 flex items-center gap-2">
+                            <div className="text-xs font-semibold text-gray-500 flex items-center gap-2 flex-wrap">
                               <span>W/L: <strong className="text-emerald-600">{player.wins}W</strong>-<strong className="text-rose-600">{player.losses}L</strong></span>
                               <span>•</span>
                               <span>Level: <strong className="text-cyan-700">{player.level}</strong></span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 flex-wrap">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                             {isOnCourt ? (
                               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200">
                                 On Court
@@ -2165,10 +2165,10 @@ const handleSwapMatchWinner = (matchId) => {
                                   Unlink
                                 </button>
                               )}
+
                               <button
                                 onClick={() => handleToggleCheckIn(player.id)}
-                                disabled={isOnCourt}
-                                className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-800 font-bold text-xs rounded-xl transition cursor-pointer border border-amber-200 shadow-2xs flex items-center gap-1"
+                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl transition cursor-pointer text-xs font-bold border border-rose-200 flex items-center gap-1"
                               >
                                 <UserX className="w-3.5 h-3.5" /> Check Out
                               </button>
@@ -2181,13 +2181,13 @@ const handleSwapMatchWinner = (matchId) => {
               </div>
             </div>
 
-            {/* MASTER ROSTER POOL SECTION */}
+            {/* PLAYER POOL SECTION */}
             <div className="md:col-span-3 bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-cyan-600" />
                   <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">
-                    Full Roster Pool ({roster.filter(p => !p.isCheckedIn).length} Available)
+                    Complete Player Pool ({roster.length})
                   </h2>
                 </div>
 
@@ -2195,7 +2195,7 @@ const handleSwapMatchWinner = (matchId) => {
                   <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search roster pool..."
+                    placeholder="Search player pool..."
                     value={poolSearch}
                     onChange={(e) => setPoolSearch(e.target.value)}
                     className="w-full bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3 py-1.5 text-xs text-gray-900 outline-none transition"
@@ -2204,42 +2204,61 @@ const handleSwapMatchWinner = (matchId) => {
               </div>
 
               <div className="space-y-3">
-                {roster.filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase())).length === 0 ? (
-                  <p className="text-xs text-gray-400 italic py-4 text-center">No unchecked players found matching search.</p>
+                {roster.filter(p => p.name.toLowerCase().includes(poolSearch.toLowerCase())).length === 0 ? (
+                  <p className="text-xs text-gray-400 italic py-4 text-center">No players found matching search.</p>
                 ) : (
                   roster
-                    .filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase()))
+                    .filter(p => p.name.toLowerCase().includes(poolSearch.toLowerCase()))
                     .map((player) => {
                       const partnerName = getPartnerName(player.partnerId);
 
                       return (
                         <div key={`pool-${player.id}`} className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
-                          <div className="space-y-1 min-w-0">
+                          <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
                               {partnerName && (
-                                <span className="text-[11px] text-cyan-700 font-semibold flex items-center gap-1 bg-cyan-50 px-2 py-0.5 rounded-md border border-cyan-100">
-                                  <Link className="w-3 h-3" /> Partner: {partnerName}
+                                <span className="text-[11px] text-cyan-700 font-semibold flex items-center gap-1 bg-cyan-50 px-2 py-0.5 rounded-md border border-cyan-100 truncate">
+                                  <Link className="w-3 h-3 shrink-0" /> Partner: {partnerName}
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs font-semibold text-gray-500 flex items-center gap-2">
+                            <div className="text-xs font-semibold text-gray-500 flex items-center gap-2 flex-wrap">
+                              <span>Played: <strong className="text-cyan-700">{player.gamesPlayed}</strong></span>
+                              <span>•</span>
                               <span>W/L: <strong className="text-emerald-600">{player.wins}W</strong>-<strong className="text-rose-600">{player.losses}L</strong></span>
                               <span>•</span>
                               <span>Level: <strong className="text-cyan-700">{player.level}</strong></span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => handleToggleCheckIn(player.id)}
-                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-2xs flex items-center gap-1.5"
-                            >
-                              <UserCheck className="w-3.5 h-3.5" /> Check In
-                            </button>
+                          <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+                            <div className="flex items-center gap-1.5">
+                              {player.partnerId && (
+                                <button
+                                  onClick={() => handleUnlinkPartner(player.id)}
+                                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition cursor-pointer text-xs font-bold border border-amber-200"
+                                  title="Unlink Partner"
+                                >
+                                  Unlink
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleToggleCheckIn(player.id)}
+                                className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                                  player.isCheckedIn 
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                                    : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-2xs'
+                                }`}
+                              >
+                                {player.isCheckedIn ? <><UserCheck className="w-3.5 h-3.5" /> Checked In</> : <><UserPlus className="w-3.5 h-3.5" /> Check In</>}
+                              </button>
+                            </div>
+
                             <button
                               onClick={() => handleRemoveFromRoster(player.id)}
-                              className="p-2 bg-gray-100 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-xl transition cursor-pointer"
+                              className="p-1.5 bg-gray-50 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-xl border border-gray-200 hover:border-rose-200 transition cursor-pointer"
                               title="Delete Player"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -2256,225 +2275,241 @@ const handleSwapMatchWinner = (matchId) => {
 
         {/* TAB 3: LEADERBOARD */}
         {activeTab === 'leaderboard' && (
-          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <Trophy className="w-6 h-6 text-amber-500" /> Leaderboard & Rankings
-                </h2>
-                <p className="text-gray-500 text-xs mt-1">
-                  Rankings calculated via Bayesian Win Rate, Activity Multipliers, and Head-to-Head Tiebreakers.
-                </p>
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {podiumData.hasPopium && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {renderPodiumStep(podiumData.rank2, 2)}
+                {renderPodiumStep(podiumData.rank1, 1)}
+                {renderPodiumStep(podiumData.rank3, 3)}
               </div>
+            )}
 
-              <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
-                <div className="relative flex-1 md:w-60">
-                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Search leaderboard..."
-                    value={leaderboardSearch}
-                    onChange={(e) => setLeaderboardSearch(e.target.value)}
-                    className="w-full bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3.5 py-2 text-xs text-gray-900 outline-none transition"
-                  />
+            <div className="bg-gray-50 border border-gray-200 rounded-3xl p-4 md:p-6 shadow-2xs">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-600">
+                    <Trophy className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-gray-900 uppercase tracking-wide">
+                      Leaderboard Standings
+                    </h2>
+                    <p className="text-gray-500 text-xs">Ranked by Bayesian Performance Score & Schedule Strength</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-gray-400" />
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-initial">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search leaderboard..."
+                      value={leaderboardSearch}
+                      onChange={(e) => setLeaderboardSearch(e.target.value)}
+                      className="w-full sm:w-48 bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3 py-1.5 text-xs text-gray-900 outline-none transition"
+                    />
+                  </div>
+
                   <select
                     value={leaderboardFilter}
                     onChange={(e) => setLeaderboardFilter(e.target.value)}
-                    className="bg-white border border-gray-200 text-gray-800 font-bold rounded-xl px-3 py-2 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
+                    className="bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-xl px-3 py-2 outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
                   >
-                    <option value="all">All Ranked Players</option>
-                    <option value="checkedIn">Currently Checked-In</option>
+                    <option value="all">All Players</option>
+                    <option value="checkedIn">Checked-In Only</option>
                   </select>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              {filteredLeaderboard.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                  No players match the leaderboard filter or search criteria.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredLeaderboard.map((player) => {
-                    const rawWinRatePercent = Math.round(player.rawWinRate * 100);
-                    const partnerName = getPartnerName(player.partnerId);
-                    const courtOrLevelVal = queueMode === 'dependent' ? (player.assignedCourt || 1) : player.level;
+              <div className="space-y-3">
+                {filteredLeaderboard.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
+                    No players found matching current filters.
+                  </div>
+                ) : (
+                  <div>
+                    <div className="hidden md:grid grid-cols-6 gap-4 px-4 pb-2 text-[11px] font-extrabold uppercase text-gray-400 tracking-wider">
+                      <div className="font-bold">Rank & Name</div>
+                      <div className="text-center font-bold">{queueMode === 'dependent' ? 'Court' : 'Level'}</div>
+                      <div className="text-center font-bold">Status</div>
+                      <div className="font-bold">Raw Win %</div>
+                      <div className="font-bold text-center">Record (W-L)</div>
+                      <div className="font-bold text-right">Performance Score</div>
+                    </div>
 
-                    return (
-                      <div
-                        key={player.id}
-                        className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-5 items-center gap-4 ${
-                          player.calculatedRank === 1 && player.isQualified
-                            ? 'border-amber-300 ring-2 ring-amber-300/20 bg-amber-50/20'
-                            : 'border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3.5 md:col-span-1">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 ${
-                            player.calculatedRank === 1 && player.isQualified
-                              ? 'bg-amber-400 text-amber-950 shadow-xs'
-                              : player.calculatedRank === 2 && player.isQualified
-                              ? 'bg-slate-300 text-slate-800'
-                              : player.calculatedRank === 3 && player.isQualified
-                              ? 'bg-amber-800/20 text-amber-900'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            #{player.calculatedRank}
-                          </div>
+                    <div className="space-y-3">
+                      {filteredLeaderboard.map((player) => {
+                        const rawWinRatePercent = Math.round(player.rawWinRate * 100);
+                        const partnerName = getPartnerName(player.partnerId);
+                        const courtOrLevelVal = queueMode === 'dependent' ? (player.assignedCourt || 1) : player.level;
 
-                          <div className="space-y-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
-                              {player.calculatedRank === 1 && player.isQualified && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
-                              {!player.isQualified && (
-                                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold" title="Provisional (< 5 games)">Prov</span>
+                        return (
+                          <div
+                            key={`lb-${player.id}`}
+                            className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-6 items-center gap-4 relative overflow-hidden ${
+                              player.calculatedRank === 1 
+                                ? 'border-amber-300 ring-2 ring-amber-300/20 bg-amber-50/20' 
+                                : player.calculatedRank === 2
+                                ? 'border-slate-300 bg-slate-50/20'
+                                : player.calculatedRank === 3
+                                ? 'border-amber-800/30 bg-amber-900/5'
+                                : 'border-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3.5 md:col-span-1 min-w-0">
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 ${
+                                player.calculatedRank === 1 
+                                  ? 'bg-amber-400 text-amber-950 shadow-xs' 
+                                  : player.calculatedRank === 2
+                                  ? 'bg-slate-300 text-slate-800'
+                                  : player.calculatedRank === 3
+                                  ? 'bg-amber-800/20 text-amber-900'
+                                  : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                #{player.calculatedRank}
+                              </div>
+
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
+                                  {player.calculatedRank === 1 && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
+                                </div>
+
+                                {partnerName && (
+                                  <div className="text-[11px] font-semibold text-cyan-700 flex items-center gap-1 truncate">
+                                    <Link className="w-3 h-3 shrink-0" /> Partner: {partnerName}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center md:justify-center">
+                              <span className={`px-3 py-1 rounded-lg font-extrabold text-xs border shadow-2xs inline-block text-center min-w-[36px] ${getCourtLevelBadgeStyle(courtOrLevelVal)}`}>
+                                {courtOrLevelVal}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center md:justify-center">
+                              {player.isCheckedIn ? (
+                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-[11px] rounded-lg border border-emerald-200">
+                                  Checked In
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 bg-gray-100 text-gray-500 font-bold text-[11px] rounded-lg border border-gray-200">
+                                  Checked Out
+                                </span>
                               )}
                             </div>
 
-                            {partnerName && (
-                              <div className="text-[11px] font-semibold text-cyan-700 flex items-center gap-1">
-                                <Link className="w-3 h-3 shrink-0" /> Partner: {partnerName}
+                            <div className="space-y-1.5 md:col-span-1">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="font-extrabold text-amber-600">{rawWinRatePercent}%</span>
                               </div>
-                            )}
-                          </div>
-                        </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    rawWinRatePercent >= 60 ? 'bg-emerald-500' : rawWinRatePercent >= 45 ? 'bg-amber-500' : 'bg-rose-500'
+                                  }`}
+                                  style={{ width: `${rawWinRatePercent}%` }}
+                                />
+                              </div>
+                            </div>
 
-                        <div className="flex items-center md:justify-center">
-                          <span className={`px-3 py-1 rounded-lg font-extrabold text-xs border shadow-2xs inline-block text-center min-w-[36px] ${getCourtLevelBadgeStyle(courtOrLevelVal)}`}>
-                            {courtOrLevelVal}
-                          </span>
-                        </div>
+                            <div className="text-xs font-semibold text-center md:col-span-1">
+                              <span className="text-emerald-600 font-extrabold">{player.wins}W</span> - <span className="text-rose-600 font-extrabold">{player.losses}L</span>
+                              <span className="text-gray-400 block text-[10px] font-mono mt-0.5">{player.gamesPlayed} games played</span>
+                            </div>
 
-                        <div className="space-y-1.5 md:col-span-1">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="font-extrabold text-amber-600">{rawWinRatePercent}%</span>
-                            <span className="text-gray-400 text-[10px] font-medium">Bayes: {Math.round(player.bayesianWinRate * 100)}%</span>
+                            <div className="text-right md:col-span-1">
+                              <span className="text-base font-black text-cyan-700 font-mono">
+                                {(player.finalScore * 100).toFixed(1)}
+                              </span>
+                              <span className="text-gray-400 block text-[10px] font-bold uppercase tracking-wider">Score</span>
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                rawWinRatePercent >= 60 ? 'bg-emerald-500' : rawWinRatePercent >= 45 ? 'bg-amber-500' : 'bg-rose-500'
-                              }`}
-                              style={{ width: `${rawWinRatePercent}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-2 md:col-span-2 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 text-xs font-semibold text-center">
-                          <div className="px-1">
-                            <span className="text-[10px] text-gray-400 block uppercase font-bold">Played</span>
-                            <span className="text-cyan-700 font-extrabold text-sm">{player.gamesPlayed}</span>
-                          </div>
-
-                          <div className="px-1">
-                            <span className="text-[10px] text-gray-400 block uppercase font-bold">W / L</span>
-                            <span className="text-gray-800 font-bold">
-                              <span className="text-emerald-600">{player.wins}</span> - <span className="text-rose-600">{player.losses}</span>
-                            </span>
-                          </div>
-
-                          <div className="px-1">
-                            <span className="text-[10px] text-gray-400 block uppercase font-bold" title="Schedule Strength">SoS</span>
-                            <span className="text-purple-600 font-bold">{player.scheduleStrength || 0}%</span>
-                          </div>
-
-                          <div className="px-1">
-                            <span className="text-[10px] text-gray-400 block uppercase font-bold">Time</span>
-                            <span className="text-cyan-700 font-bold font-mono">{formatDuration(player.timePlayedSec)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </section>
+          </div>
         )}
 
         {/* TAB 4: MATCH LOGS */}
         {activeTab === 'matchLogs' && (
-          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
+          <div className="bg-gray-50 border border-gray-200 rounded-3xl p-4 md:p-6 shadow-2xs animate-in fade-in duration-200">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+              <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600 shrink-0">
+                <History className="w-6 h-6" />
+              </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <History className="w-5 h-5 text-cyan-600" /> Match History Logs
+                <h2 className="text-base font-black text-gray-900 uppercase tracking-wide">
+                  Match History Logs
                 </h2>
-                <p className="text-gray-500 text-xs mt-1">
-                  All recorded matches for this session. You can swap match winners if a score was logged incorrectly.
-                </p>
+                <p className="text-gray-500 text-xs">Complete chronological record of all recorded matches and results</p>
               </div>
             </div>
 
             {matchHistory.length === 0 ? (
-              <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic">
-                No matches completed yet.
+              <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
+                No matches have been completed yet in this session.
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {matchHistory.map((match) => {
-                  const matchLevel = match.level ?? match.courtId ?? 1;
-                  const isWithinTwoMinutes = Date.now() - match.timestamp < 120000;
+                  const matchDate = new Date(match.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                   return (
-                    <div 
-                      key={match.id} 
-                      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden"
-                    >
-                      <div className="space-y-3 flex-1 min-w-0">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <span className="text-xs font-black bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-100 shadow-2xs">
+                    <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-xs bg-cyan-50 text-cyan-700 border border-cyan-200 px-2.5 py-0.5 rounded-md">
                             Match #{match.matchNumber}
                           </span>
-                          <span className="text-xs font-bold text-gray-700">
-                            {match.courtName}
+                          <span className="text-xs font-bold text-gray-500">
+                            {match.courtName} • Level {match.level}
                           </span>
                           <span className="text-xs text-gray-400 font-mono">
-                            • {formatDuration(match.durationSec)}
-                          </span>
-                          <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(matchLevel)}`}>
-                            Level {matchLevel}
-                          </span>
-                          <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg shadow-2xs">
-                            First Serve: Team {match.firstServe}
+                            {matchDate} ({formatDuration(match.durationSec)})
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-6 text-xs pt-1 flex-wrap">
-                          <span className="font-bold text-cyan-900">
-                            Team A: <span className="font-normal text-gray-700">{match.teamA.join(' & ')}</span> {match.winningTeam === 'A' && '👑'}
-                          </span>
-                          <span className="font-bold text-rose-900">
-                            Team B: <span className="font-normal text-gray-700">{match.teamB.join(' & ')}</span> {match.winningTeam === 'B' && '👑'}
-                          </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                          <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${match.winningTeam === 'A' ? 'bg-emerald-50/60 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="min-w-0 flex-1 mr-2">
+                              <span className="text-[10px] font-bold text-cyan-700 uppercase tracking-wider block mb-0.5">Team A</span>
+                              <span className="font-bold text-gray-800 truncate block">{match.teamA.join(', ')}</span>
+                            </div>
+                            {match.winningTeam === 'A' && (
+                              <span className="px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-full shrink-0">
+                                Winner
+                              </span>
+                            )}
+                          </div>
+
+                          <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${match.winningTeam === 'B' ? 'bg-emerald-50/60 border-emerald-300' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="min-w-0 flex-1 mr-2">
+                              <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block mb-0.5">Team B</span>
+                              <span className="font-bold text-gray-800 truncate block">{match.teamB.join(', ')}</span>
+                            </div>
+                            {match.winningTeam === 'B' && (
+                              <span className="px-2 py-0.5 bg-emerald-600 text-white font-bold text-[10px] rounded-full shrink-0">
+                                Winner
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 shrink-0 self-end md:self-center pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 w-full md:w-auto justify-end">
-                        <span className={`text-xs font-bold px-3 py-1.5 rounded-full border shadow-2xs ${
-                          match.winningTeam === 'A' 
-                            ? 'bg-cyan-50 border-cyan-200 text-cyan-800' 
-                            : 'bg-rose-50 border-rose-200 text-rose-800'
-                        }`}>
-                          Winner: Team {match.winningTeam}
-                        </span>
-
+                      <div className="flex items-center gap-2 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-gray-100">
                         <button
                           onClick={() => handleSwapMatchWinner(match.id)}
-                          disabled={!isWithinTwoMinutes}
-                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                            isWithinTwoMinutes
-                              ? 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer shadow-xs'
-                              : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
-                          }`}
-                          title={isWithinTwoMinutes ? "Swap Winner (Available for 2 mins)" : "Swap Winner disabled (2 minutes elapsed)"}
+                          className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
+                          title="Swap winning team for this match"
                         >
-                          <Repeat className="w-3.5 h-3.5" /> Swap Winner {!isWithinTwoMinutes && '(Locked)'}
+                          <Repeat className="w-3.5 h-3.5" /> Swap Winner
                         </button>
                       </div>
                     </div>
@@ -2482,8 +2517,9 @@ const handleSwapMatchWinner = (matchId) => {
                 })}
               </div>
             )}
-          </section>
+          </div>
         )}
+
       </main>
     </div>
   );
