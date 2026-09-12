@@ -998,6 +998,95 @@ export default function App() {
     });
   };
 
+  // --- FEATURE: SWAP MATCH WINNER HANDLER ---
+  const handleSwapMatchWinner = (matchId) => {
+    const targetMatch = matchHistory.find(m => m.id === matchId);
+    if (!targetMatch) return;
+
+    const newWinningTeam = targetMatch.winningTeam === 'A' ? 'B' : 'A';
+
+    // Update player records and queue assignments in roster
+    setRoster(prevRoster => {
+      const teamAIds = targetMatch.teamAPlayerIds;
+      const teamBIds = targetMatch.teamBPlayerIds;
+
+      const oldWinners = targetMatch.winningTeam === 'A' ? teamAIds : teamBIds;
+      const oldLosers = targetMatch.winningTeam === 'A' ? teamBIds : teamAIds;
+
+      const updatedRoster = prevRoster.map(player => {
+        let winsChange = 0;
+        let lossesChange = 0;
+        let levelChange = 0;
+        let assignedCourtUpdate = player.assignedCourt;
+
+        if (oldWinners.includes(player.id)) {
+          winsChange -= 1;
+          lossesChange += 1;
+          if (queueMode === 'independent') {
+            levelChange = targetMatch.winningTeam === 'A' ? -1 : 1; 
+          } else {
+            // Revert court movement for dependent mode (old winners went up/down, now they do the opposite)
+            const courtId = targetMatch.courtId;
+            const prevNextCourt = courtId === 1 ? 2 : (courtId === totalCourtCount ? courtId : courtId + 1);
+            assignedCourtUpdate = prevNextCourt;
+          }
+        } else if (oldLosers.includes(player.id)) {
+          winsChange += 1;
+          lossesChange -= 1;
+          if (queueMode === 'independent') {
+            levelChange = targetMatch.winningTeam === 'A' ? 1 : -1;
+          } else {
+            const courtId = targetMatch.courtId;
+            const prevNextCourt = courtId === 1 ? 1 : (courtId === totalCourtCount ? courtId - 1 : courtId);
+            assignedCourtUpdate = prevNextCourt;
+          }
+        }
+
+        if (winsChange !== 0 || lossesChange !== 0) {
+          const newWins = Math.max(0, player.wins + winsChange);
+          const newLosses = Math.max(0, player.losses + lossesChange);
+          let newLevel = player.level;
+
+          if (queueMode === 'independent') {
+            newLevel = Math.max(1, Math.min(totalLevelCount, player.level + levelChange));
+          }
+
+          let updatedH2H = { ...(player.headToHead || {}) };
+          if (oldWinners.includes(player.id)) {
+            oldLosers.forEach(oppId => {
+              if (updatedH2H[oppId]) {
+                updatedH2H[oppId].winsAgainst = Math.max(0, updatedH2H[oppId].winsAgainst - 1);
+              }
+            });
+          } else if (oldLosers.includes(player.id)) {
+            oldWinners.forEach(oppId => {
+              if (!updatedH2H[oppId]) updatedH2H[oppId] = { winsAgainst: 0, totalAgainst: 1 };
+              updatedH2H[oppId].winsAgainst += 1;
+            });
+          }
+
+          return {
+            ...player,
+            wins: newWins,
+            losses: newLosses,
+            level: newLevel,
+            assignedCourt: assignedCourtUpdate,
+            headToHead: updatedH2H,
+            checkedInAt: Date.now() // Reset check-in timestamp to reflect queue priority update upon swap
+          };
+        }
+        return player;
+      });
+
+      return updatedRoster.map(player => ({
+        ...player,
+        scheduleStrength: calculateScheduleStrength(player.id, updatedRoster, matchHistory)
+      }));
+    });
+
+    setMatchHistory(prev => prev.map(m => m.id === matchId ? { ...m, winningTeam: newWinningTeam } : m));
+  };
+
   const handleResetSession = () => {
     if (window.confirm("Reset all session data, courts, and queues?")) {
       localStorage.clear();
@@ -2340,6 +2429,13 @@ export default function App() {
                       <span className={`text-xs font-bold px-3 py-1 rounded-xl ${match.winningTeam === 'A' ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
                         Winner: Team {match.winningTeam}
                       </span>
+                      <button
+                        onClick={() => handleSwapMatchWinner(match.id)}
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-amber-50 text-gray-700 hover:text-amber-700 border border-gray-200 hover:border-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        title="Swap Winning Team"
+                      >
+                        <Repeat className="w-3.5 h-3.5" /> Swap Winner
+                      </button>
                     </div>
                   </div>
                 ))}
