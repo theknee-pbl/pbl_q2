@@ -37,11 +37,7 @@ import {
   Lock,
   User,
   Image as ImageIcon,
-  CircleDot,
-  QrCode,
-  Share2,
-  Copy,
-  ExternalLink
+  CircleDot
 } from 'lucide-react';
 
 // --- DYNAMIC COURT / LEVEL BADGE COLOR HELPER ---
@@ -77,10 +73,6 @@ function PBLLogo({ className = "w-20 h-20" }) {
         src="./logo.jfif" 
         alt="PBL Queueing Logo" 
         className="w-full h-full object-cover"
-        onError={(e) => {
-          // Fallback if logo file doesn't load
-          e.target.style.display = 'none';
-        }}
       />
     </div>
   );
@@ -160,10 +152,6 @@ export default function App() {
   const [checkedInSearch, setCheckedInSearch] = useState('');
   const [poolSearch, setPoolSearch] = useState('');
 
-  // --- SHARE URL STATE ---
-  const [currentAppUrl, setCurrentAppUrl] = useState('');
-  const [copiedLink, setCopiedLink] = useState(false);
-
   const [queueMode, setQueueMode] = useState(() => {
     return localStorage.getItem('pickleq_queue_mode') || 'independent';
   });
@@ -201,7 +189,7 @@ export default function App() {
       name: `Court 0${i + 1}`,
       teamA: [],
       teamB: [],
-      firstServe: null,
+      firstServe: null, // 'A' or 'B'
       isLive: false,
       startTime: null,
       totalPlayTimeSec: 0
@@ -233,13 +221,6 @@ export default function App() {
   });
 
   const fileInputRef = useRef(null);
-
-  // Set URL on mount for multi-device QR code sharing
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentAppUrl(window.location.href);
-    }
-  }, []);
 
   // --- AUTH HANDLER ---
   const handleLogin = (e) => {
@@ -798,6 +779,7 @@ export default function App() {
       return;
     }
 
+    // Randomly pick 'A' or 'B' for First Serve
     const randomFirstServe = Math.random() < 0.5 ? 'A' : 'B';
 
     if (queueMode === 'independent') {
@@ -1562,14 +1544,6 @@ export default function App() {
           <LayoutGrid className="w-4 h-4" /> Courts & Queues
         </button>
         <button
-          onClick={() => setActiveTab('liveMatchup')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-            activeTab === 'liveMatchup' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
-        >
-          <Activity className="w-4 h-4" /> Live Match-up & Next
-        </button>
-        <button
           onClick={() => setActiveTab('players')}
           className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
             activeTab === 'players' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -1592,14 +1566,6 @@ export default function App() {
           }`}
         >
           <History className="w-4 h-4" /> Match Logs
-        </button>
-        <button
-          onClick={() => setActiveTab('playerKiosk')}
-          className={`px-5 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer ${
-            activeTab === 'playerKiosk' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-          }`}
-        >
-          <QrCode className="w-4 h-4" /> Player QR View
         </button>
       </div>
 
@@ -1932,189 +1898,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: LIVE MATCH-UP & NEXT MATCHES (NEW SEPARATE TAB) */}
-        {activeTab === 'liveMatchup' && (
-          <div className="space-y-8 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
-              <div>
-                <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-                  <Activity className="w-6 h-6 text-cyan-600" /> Current Match-ups & Next Queue Lineup
-                </h2>
-                <p className="text-gray-500 text-xs mt-1">
-                  Dedicated view displaying live matches currently playing on all courts alongside upcoming queued matches.
-                </p>
-              </div>
-            </div>
-
-            {/* LIVE MATCHES SECTION */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Play className="w-5 h-5 text-emerald-600 fill-emerald-600" /> Currently Live Match-ups
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {courts.map((court) => {
-                  const isOccupied = court.teamA.length > 0 || court.teamB.length > 0;
-                  const liveElapsedSec = court.isLive && court.startTime ? Math.max(0, Math.floor((now - court.startTime) / 1000)) : 0;
-
-                  return (
-                    <div key={`live-tab-${court.id}`} className="bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
-                          <span className="font-extrabold text-base text-gray-900">{court.name}</span>
-                          {isOccupied ? (
-                            <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Match
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-gray-500 font-medium bg-gray-200 px-2.5 py-0.5 rounded-full">
-                              Court Vacant
-                            </span>
-                          )}
-                        </div>
-
-                        {isOccupied ? (
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center text-xs text-gray-500 font-mono">
-                              <span>Elapsed Time</span>
-                              <span className="font-bold text-cyan-700 flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" /> {formatDuration(liveElapsedSec)}
-                              </span>
-                            </div>
-
-                            {court.firstServe && (
-                              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-1 text-xs font-bold text-amber-900 flex items-center justify-between">
-                                <span>First Serve:</span>
-                                <span className={`px-2 py-0.5 rounded text-[11px] ${court.firstServe === 'A' ? 'bg-cyan-600 text-white' : 'bg-rose-600 text-white'}`}>
-                                  Team {court.firstServe}
-                                </span>
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-white border border-cyan-200 p-2.5 rounded-xl">
-                                <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block mb-1">Team A</span>
-                                {court.teamA.map((p) => (
-                                  <div key={p.id} className="text-xs font-semibold text-gray-800 truncate py-0.5">
-                                    • {p.name}
-                                  </div>
-                                ))}
-                              </div>
-
-                              <div className="bg-white border border-rose-200 p-2.5 rounded-xl">
-                                <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block mb-1">Team B</span>
-                                {court.teamB.map((p) => (
-                                  <div key={p.id} className="text-xs font-semibold text-gray-800 truncate py-0.5">
-                                    • {p.name}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="py-6 text-center text-gray-400 italic text-xs">
-                            No match currently running on this court.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* NEXT MATCHES QUEUE SECTION */}
-            <div className="space-y-4 pt-4 border-t border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-cyan-600" /> Upcoming Next Matches in Queue
-              </h3>
-
-              {queueMode === 'independent' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(() => {
-                    const candidateMatches = getPrioritizedCandidateMatchesIndependent();
-                    if (candidateMatches.length === 0) {
-                      return (
-                        <div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic text-xs">
-                          No upcoming matches ready. At least 4 players must be checked in per level.
-                        </div>
-                      );
-                    }
-
-                    return candidateMatches.map((candidate, idx) => (
-                      <div key={`next-match-ind-${idx}`} className="bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs relative">
-                        <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
-                          <span className="text-xs font-black text-cyan-700 uppercase tracking-wider">
-                            Queue Position #{idx + 1}
-                          </span>
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded border ${getCourtLevelBadgeStyle(candidate.level)}`}>
-                            Level {candidate.level}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-white border border-cyan-200 p-3 rounded-xl">
-                            <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block mb-1">Team A</span>
-                            {candidate.matchData.teamA.map(p => (
-                              <div key={p.id} className="text-xs font-bold text-gray-800 truncate py-0.5">{p.name}</div>
-                            ))}
-                          </div>
-                          <div className="bg-white border border-rose-200 p-3 rounded-xl">
-                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block mb-1">Team B</span>
-                            {candidate.matchData.teamB.map(p => (
-                              <div key={p.id} className="text-xs font-bold text-gray-800 truncate py-0.5">{p.name}</div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {courts.map((court) => {
-                    const courtQueue = getQueueForCourtDependent(court.id);
-                    const nextMatch = getNextMatchFromQueue(courtQueue);
-
-                    return (
-                      <div key={`next-match-dep-${court.id}`} className="bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
-                        <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
-                          <span className="font-extrabold text-sm text-gray-900">{court.name} Queue</span>
-                          <span className="text-xs font-bold text-cyan-700 bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-200">
-                            {courtQueue.length} Players Ready
-                          </span>
-                        </div>
-
-                        {nextMatch.valid ? (
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="bg-white border border-cyan-200 p-2.5 rounded-xl">
-                              <span className="text-[10px] font-bold text-cyan-600 uppercase block mb-1">Team A</span>
-                              {nextMatch.teamA.map(p => (
-                                <div key={p.id} className="text-xs font-semibold text-gray-800 truncate py-0.5">{p.name}</div>
-                              ))}
-                            </div>
-                            <div className="bg-white border border-rose-200 p-2.5 rounded-xl">
-                              <span className="text-[10px] font-bold text-rose-600 uppercase block mb-1">Team B</span>
-                              {nextMatch.teamB.map(p => (
-                                <div key={p.id} className="text-xs font-semibold text-gray-800 truncate py-0.5">{p.name}</div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-400 italic py-4 text-center">
-                            Need at least 4 players in queue (Available: {courtQueue.length})
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: PLAYERS ROSTER */}
+        {/* TAB 2: PLAYERS ROSTER */}
         {activeTab === 'players' && (
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-200">
             <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col justify-between shadow-2xs">
@@ -2256,26 +2040,38 @@ export default function App() {
                               <span>W/L: <strong className="text-emerald-600">{player.wins}W</strong>-<strong className="text-rose-600">{player.losses}L</strong></span>
                               <span>•</span>
                               <span>Level: <strong className="text-cyan-700">{player.level}</strong></span>
-                              <span>•</span>
-                              <span className="font-mono text-cyan-600">Wait: {formatWaitTime(player.checkedInAt)}</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
-                            {player.partnerId && (
-                              <button
-                                onClick={() => handleUnlinkPartner(player.id)}
-                                className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition cursor-pointer flex items-center gap-1"
-                              >
-                                <Unlink className="w-3.5 h-3.5" /> Unlink
-                              </button>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {isOnCourt ? (
+                              <span className="px-3 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200">
+                                On Court
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 bg-cyan-50 text-cyan-700 font-bold text-xs rounded-xl border border-cyan-200 font-mono">
+                                Wait: {formatWaitTime(player.checkedInAt)}
+                              </span>
                             )}
-                            <button
-                              onClick={() => handleToggleCheckIn(player.id)}
-                              className="px-4 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition cursor-pointer flex items-center gap-1"
-                            >
-                              <UserX className="w-3.5 h-3.5" /> Check Out
-                            </button>
+
+                            <div className="flex items-center gap-1.5">
+                              {player.partnerId && !isOnCourt && (
+                                <button
+                                  onClick={() => handleUnlinkPartner(player.id)}
+                                  className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition cursor-pointer text-xs font-bold border border-amber-200"
+                                  title="Unlink Partner"
+                                >
+                                  Unlink
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleToggleCheckIn(player.id)}
+                                disabled={isOnCourt}
+                                className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 text-amber-800 font-bold text-xs rounded-xl transition cursor-pointer border border-amber-200 shadow-2xs flex items-center gap-1"
+                              >
+                                <UserX className="w-3.5 h-3.5" /> Check Out
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -2284,13 +2080,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* AVAILABLE POOL / CHECKED OUT SECTION */}
+            {/* MASTER ROSTER POOL SECTION */}
             <div className="md:col-span-3 bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-cyan-600" />
                   <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">
-                    Available Roster Pool ({roster.filter(p => !p.isCheckedIn).length})
+                    Full Roster Pool ({roster.filter(p => !p.isCheckedIn).length} Available)
                   </h2>
                 </div>
 
@@ -2308,7 +2104,7 @@ export default function App() {
 
               <div className="space-y-3">
                 {roster.filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase())).length === 0 ? (
-                  <p className="text-xs text-gray-400 italic py-4 text-center">No inactive players found matching search.</p>
+                  <p className="text-xs text-gray-400 italic py-4 text-center">No unchecked players found matching search.</p>
                 ) : (
                   roster
                     .filter(p => !p.isCheckedIn && p.name.toLowerCase().includes(poolSearch.toLowerCase()))
@@ -2327,30 +2123,22 @@ export default function App() {
                               )}
                             </div>
                             <div className="text-xs font-semibold text-gray-500 flex items-center gap-2">
-                              <span>Played: <strong className="text-cyan-700">{player.gamesPlayed}</strong></span>
-                              <span>•</span>
                               <span>W/L: <strong className="text-emerald-600">{player.wins}W</strong>-<strong className="text-rose-600">{player.losses}L</strong></span>
+                              <span>•</span>
+                              <span>Level: <strong className="text-cyan-700">{player.level}</strong></span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
-                            {player.partnerId && (
-                              <button
-                                onClick={() => handleUnlinkPartner(player.id)}
-                                className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition cursor-pointer flex items-center gap-1"
-                              >
-                                <Unlink className="w-3.5 h-3.5" /> Unlink
-                              </button>
-                            )}
+                          <div className="flex items-center gap-3">
                             <button
                               onClick={() => handleToggleCheckIn(player.id)}
-                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-2xs flex items-center gap-1.5"
                             >
                               <UserCheck className="w-3.5 h-3.5" /> Check In
                             </button>
                             <button
                               onClick={() => handleRemoveFromRoster(player.id)}
-                              className="p-1.5 bg-gray-100 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-xl border border-gray-200 transition cursor-pointer"
+                              className="p-2 bg-gray-100 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-xl transition cursor-pointer"
                               title="Delete Player"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -2365,48 +2153,49 @@ export default function App() {
           </section>
         )}
 
-        {/* TAB 4: LEADERBOARD */}
+        {/* TAB 3: LEADERBOARD */}
         {activeTab === 'leaderboard' && (
-          <section className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-2xs">
-              <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
-                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Filter:</span>
-                <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
-                  <button
-                    onClick={() => setLeaderboardFilter('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${leaderboardFilter === 'all' ? 'bg-cyan-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                  >
-                    All Players
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardFilter('checkedIn')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${leaderboardFilter === 'checkedIn' ? 'bg-cyan-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                  >
-                    Checked-In Only
-                  </button>
-                </div>
+          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Trophy className="w-6 h-6 text-amber-500" /> Leaderboard & Rankings
+                </h2>
+                <p className="text-gray-500 text-xs mt-1">
+                  Rankings calculated via Bayesian Win Rate, Activity Multipliers, and Head-to-Head Tiebreakers.
+                </p>
               </div>
 
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search leaderboard..."
-                  value={leaderboardSearch}
-                  onChange={(e) => setLeaderboardSearch(e.target.value)}
-                  className="w-full bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 outline-none transition"
-                />
+              <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
+                <div className="relative flex-1 md:w-60">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search leaderboard..."
+                    value={leaderboardSearch}
+                    onChange={(e) => setLeaderboardSearch(e.target.value)}
+                    className="w-full bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3.5 py-2 text-xs text-gray-900 outline-none transition"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <Filter className="w-3.5 h-3.5 text-gray-400" />
+                  <select
+                    value={leaderboardFilter}
+                    onChange={(e) => setLeaderboardFilter(e.target.value)}
+                    className="bg-white border border-gray-200 text-gray-800 font-bold rounded-xl px-3 py-2 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
+                  >
+                    <option value="all">All Ranked Players</option>
+                    <option value="checkedIn">Currently Checked-In</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-amber-500" /> Bayesian Leaderboard & Standings
-              </h2>
-
+            <div className="space-y-3">
               {filteredLeaderboard.length === 0 ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                  No players found matching your criteria.
+                <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
+                  No players match the leaderboard filter or search criteria.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -2418,19 +2207,19 @@ export default function App() {
                     return (
                       <div
                         key={player.id}
-                        className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-5 items-center gap-4 relative overflow-hidden ${
-                          player.calculatedRank === 1 
-                            ? 'border-amber-300 bg-amber-50/10 ring-1 ring-amber-300/20' 
+                        className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-5 items-center gap-4 ${
+                          player.calculatedRank === 1 && player.isQualified
+                            ? 'border-amber-300 ring-2 ring-amber-300/20 bg-amber-50/20'
                             : 'border-gray-200'
                         }`}
                       >
                         <div className="flex items-center gap-3.5 md:col-span-1">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 ${
-                            player.calculatedRank === 1 
-                              ? 'bg-amber-400 text-amber-950 shadow-xs' 
-                              : player.calculatedRank === 2
+                            player.calculatedRank === 1 && player.isQualified
+                              ? 'bg-amber-400 text-amber-950 shadow-xs'
+                              : player.calculatedRank === 2 && player.isQualified
                               ? 'bg-slate-300 text-slate-800'
-                              : player.calculatedRank === 3
+                              : player.calculatedRank === 3 && player.isQualified
                               ? 'bg-amber-800/20 text-amber-900'
                               : 'bg-gray-100 text-gray-700'
                           }`}>
@@ -2440,8 +2229,10 @@ export default function App() {
                           <div className="space-y-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
-                              {player.calculatedRank === 1 && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
-                              {!player.isQualified && <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-semibold">Provisional</span>}
+                              {player.calculatedRank === 1 && player.isQualified && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
+                              {!player.isQualified && (
+                                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold" title="Provisional (< 5 games)">Prov</span>
+                              )}
                             </div>
 
                             {partnerName && (
@@ -2460,8 +2251,8 @@ export default function App() {
 
                         <div className="space-y-1.5 md:col-span-1">
                           <div className="flex justify-between items-center text-xs">
-                            <span className="font-bold text-gray-600">Raw Win Rate</span>
                             <span className="font-extrabold text-amber-600">{rawWinRatePercent}%</span>
+                            <span className="text-gray-400 text-[10px] font-medium">Bayes: {Math.round(player.bayesianWinRate * 100)}%</span>
                           </div>
                           <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200">
                             <div
@@ -2505,49 +2296,50 @@ export default function App() {
           </section>
         )}
 
-        {/* TAB 5: MATCH LOGS */}
+        {/* TAB 4: MATCH LOGS */}
         {activeTab === 'matchLogs' && (
-          <section className="space-y-6 animate-in fade-in duration-200">
-            <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+          <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
+            <div className="pb-4 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <History className="w-5 h-5 text-cyan-600" /> Completed Match History ({matchHistory.length})
+                <History className="w-6 h-6 text-cyan-600" /> Match History Logs
               </h2>
+              <p className="text-gray-500 text-xs mt-1">
+                All recorded matches for this session. You can swap match winners if a score was logged incorrectly.
+              </p>
             </div>
 
             {matchHistory.length === 0 ? (
-              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                No matches recorded in this session yet.
+              <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
+                No matches completed yet in this session.
               </div>
             ) : (
               <div className="space-y-3">
                 {matchHistory.map((match) => (
-                  <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-2xs">
+                  <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-xs bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-200">
+                        <span className="text-xs font-extrabold text-cyan-700 bg-cyan-50 border border-cyan-100 px-2 py-0.5 rounded">
                           Match #{match.matchNumber}
                         </span>
-                        <span className="font-bold text-sm text-gray-900">{match.courtName}</span>
-                        {queueMode === 'independent' && (
-                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border shadow-2xs ${getCourtLevelBadgeStyle(match.level)}`}>
-                            Level {match.level}
+                        <span className="text-xs font-bold text-gray-800">{match.courtName}</span>
+                        <span className="text-xs text-gray-400">• {formatDuration(match.durationSec)}</span>
+                        {match.firstServe && (
+                          <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">
+                            First Serve: Team {match.firstServe}
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 font-mono">
-                        Duration: {formatDuration(match.durationSec)} • {new Date(match.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+                      <div className="text-xs text-gray-700 flex flex-wrap gap-4 pt-1">
+                        <div><strong className="text-cyan-700">Team A:</strong> {match.teamA.join(' & ')} {match.winningTeam === 'A' && '👑'}</div>
+                        <div><strong className="text-rose-700">Team B:</strong> {match.teamB.join(' & ')} {match.winningTeam === 'B' && '👑'}</div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full md:w-auto">
-                      <div className={`p-2.5 rounded-xl border text-xs ${match.winningTeam === 'A' ? 'bg-cyan-50 border-cyan-300 font-bold' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                        <span className="text-[10px] font-bold uppercase text-cyan-700 block mb-1">Team A {match.winningTeam === 'A' && '🏆'}</span>
-                        {match.teamA.join(', ')}
-                      </div>
-                      <div className={`p-2.5 rounded-xl border text-xs ${match.winningTeam === 'B' ? 'bg-rose-50 border-rose-300 font-bold' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                        <span className="text-[10px] font-bold uppercase text-rose-700 block mb-1">Team B {match.winningTeam === 'B' && '🏆'}</span>
-                        {match.teamB.join(', ')}
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-bold px-3 py-1 rounded-xl ${match.winningTeam === 'A' ? 'bg-cyan-50 text-cyan-700 border border-cyan-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                        Winner: Team {match.winningTeam}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -2555,58 +2347,6 @@ export default function App() {
             )}
           </section>
         )}
-
-        {/* TAB 6: PLAYER KIOSK & QR CODE (SPECIFICALLY ACCESSED FROM LIVE MATCHUP TAB) */}
-        {activeTab === 'playerKiosk' && (
-          <section className="space-y-6 animate-in fade-in duration-200 max-w-2xl mx-auto text-center py-6">
-            <div className="bg-gray-50 border border-gray-200 rounded-3xl p-8 shadow-xl relative overflow-hidden">
-              <div className="w-16 h-16 bg-cyan-50 border border-cyan-200 text-cyan-600 rounded-2xl mx-auto flex items-center justify-center mb-4">
-                <QrCode className="w-8 h-8" />
-              </div>
-
-              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wide mb-2">
-                Live Match-up & Next Queue QR Access
-              </h2>
-              <p className="text-gray-500 text-xs mb-6 max-w-md mx-auto leading-relaxed">
-                Scan this QR code using any mobile device to directly access the <strong className="text-cyan-700">Live Match-up & Next Queue</strong> tab without needing full admin credentials.
-              </p>
-
-              {/* QR Code Container simulation / Image */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 inline-block shadow-md mb-6">
-                <div className="w-48 h-48 bg-gray-100 border border-gray-200 rounded-xl flex flex-col items-center justify-center text-center p-4 relative overflow-hidden">
-                  <QrCode className="w-32 h-32 text-gray-800" />
-                  <span className="absolute bottom-2 text-[10px] font-mono font-bold text-gray-500">PBL LIVE KIOSK</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl p-3 max-w-md mx-auto">
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentAppUrl ? `${currentAppUrl}#liveMatchup` : ''}
-                    className="bg-transparent text-xs text-gray-600 outline-none w-full truncate font-mono text-center"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}#liveMatchup`);
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2000);
-                    }}
-                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg transition shrink-0 cursor-pointer flex items-center gap-1 shadow-2xs"
-                  >
-                    {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copiedLink ? 'Copied!' : 'Copy Link'}
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-amber-600 font-semibold">
-                  Note: This QR code is tied directly to the Live Match-up tab for instant court display on player phones.
-                </p>
-              </div>
-            </div>
-          </section>
-        )}
-
       </main>
     </div>
   );
