@@ -152,6 +152,9 @@ export default function App() {
   const [checkedInSearch, setCheckedInSearch] = useState('');
   const [poolSearch, setPoolSearch] = useState('');
 
+  // --- PLAYER SEARCH TAB STATE ---
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+
   const [queueMode, setQueueMode] = useState(() => {
     return localStorage.getItem('pickleq_queue_mode') || 'independent';
   });
@@ -320,6 +323,21 @@ export default function App() {
       return matchesFilter && matchesSearch;
     });
   }, [rankedRoster, leaderboardFilter, leaderboardSearch]);
+
+  // --- PLAYER SEARCH RESULT MEMO ---
+  const searchedPlayerMatches = useMemo(() => {
+    if (!playerSearchQuery.trim()) return { player: null, matches: [] };
+    const query = playerSearchQuery.trim().toLowerCase();
+    const targetPlayer = roster.find(p => p.name.toLowerCase().includes(query));
+    if (!targetPlayer) return { player: null, matches: [] };
+
+    // Find all matches involving this targetPlayer
+    const matches = matchHistory.filter(m => 
+      m.teamAPlayerIds.includes(targetPlayer.id) || m.teamBPlayerIds.includes(targetPlayer.id)
+    );
+
+    return { player: targetPlayer, matches };
+  }, [playerSearchQuery, roster, matchHistory]);
 
   const activeCourtPlayerIds = new Set(
     courts.flatMap((c) => [...c.teamA, ...c.teamB].map((p) => p.id))
@@ -541,7 +559,6 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // --- CHECK-IN HANDLER UPDATE ---
   const handleToggleCheckIn = (playerId) => {
     setRoster((prev) => {
       const target = prev.find((p) => p.id === playerId);
@@ -780,7 +797,6 @@ export default function App() {
       return;
     }
 
-    // Randomly pick 'A' or 'B' for First Serve
     const randomFirstServe = Math.random() < 0.5 ? 'A' : 'B';
 
     if (queueMode === 'independent') {
@@ -1662,6 +1678,14 @@ export default function App() {
           <Trophy className="w-4 h-4" /> Leaderboard
         </button>
         <button
+          onClick={() => setActiveTab('searchPlayer')}
+          className={`px-4 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
+            activeTab === 'searchPlayer' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+        >
+          <Search className="w-4 h-4" /> Player Lookup
+        </button>
+        <button
           onClick={() => setActiveTab('matchLogs')}
           className={`px-4 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
             activeTab === 'matchLogs' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -1831,7 +1855,6 @@ export default function App() {
 
                           {isOccupied ? (
                             <div className="space-y-3 my-2">
-                              {/* FIRST SERVE BADGE */}
                               {court.firstServe && (
                                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs font-bold text-amber-900">
                                   <span className="flex items-center gap-1.5">
@@ -2363,9 +2386,6 @@ export default function App() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
                                   {player.calculatedRank === 1 && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
-                                  {player.isCheckedIn && (
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Checked In" />
-                                  )}
                                 </div>
 
                                 {partnerName && (
@@ -2385,9 +2405,6 @@ export default function App() {
                             <div className="space-y-1.5 md:col-span-1">
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-extrabold text-amber-600">{rawWinRatePercent}%</span>
-                                {!player.isQualified && (
-                                  <span className="text-[10px] text-gray-400 italic">(&lt; 5 games)</span>
-                                )}
                               </div>
                               <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200">
                                 <div
@@ -2433,7 +2450,115 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: MATCH LOGS */}
+        {/* TAB 4: PLAYER SEARCH & MATCH HISTORY LOOKUP */}
+        {activeTab === 'searchPlayer' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
+              <div className="flex items-center gap-3 mb-4">
+                <Search className="w-6 h-6 text-cyan-600" />
+                <h2 className="text-lg font-bold text-gray-900 uppercase tracking-wide">
+                  Player Matches
+                </h2>
+              </div>
+
+              <div className="relative max-w-xl">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Type player name (e.g. Alex Rivera)..."
+                  value={playerSearchQuery}
+                  onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 outline-none transition shadow-2xs"
+                />
+              </div>
+            </div>
+
+            {playerSearchQuery.trim() && (
+              <div className="space-y-4">
+                {!searchedPlayerMatches.player ? (
+                  <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic shadow-2xs">
+                    No player found matching "{playerSearchQuery}".
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Player Info Card */}
+                    <div className="bg-white border border-cyan-500/30 rounded-2xl p-5 shadow-2xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-extrabold text-gray-900">{searchedPlayerMatches.player.name}</h3>
+                          {searchedPlayerMatches.player.partnerId && (
+                            <span className="text-xs text-cyan-700 bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 rounded-md font-semibold flex items-center gap-1">
+                              <Link className="w-3 h-3" /> Fixed Partner: {getPartnerName(searchedPlayerMatches.player.partnerId)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-semibold text-gray-500 flex items-center gap-3">
+                          <span>Games Played: <strong className="text-cyan-700">{searchedPlayerMatches.player.gamesPlayed}</strong></span>
+                          <span>•</span>
+                          <span>Record: <strong className="text-emerald-600">{searchedPlayerMatches.player.wins}W</strong> - <strong className="text-rose-600">{searchedPlayerMatches.player.losses}L</strong></span>
+                          <span>•</span>
+                          <span>Level/Court: <strong className="text-cyan-700">{searchedPlayerMatches.player.level}</strong></span>
+                        </div>
+                      </div>
+                      <div className="bg-cyan-50 border border-cyan-200 px-4 py-2 rounded-xl text-center">
+                        <span className="text-[10px] text-cyan-700 block font-bold uppercase">Total Matches Found</span>
+                        <span className="text-lg font-extrabold text-cyan-900">{searchedPlayerMatches.matches.length}</span>
+                      </div>
+                    </div>
+
+                    {/* Matches List */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">Match History & Partners for {searchedPlayerMatches.player.name}</h4>
+                      
+                      {searchedPlayerMatches.matches.length === 0 ? (
+                        <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center text-gray-400 italic shadow-2xs">
+                          This player has not completed any recorded matches yet.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-3">
+                          {searchedPlayerMatches.matches.map((match) => {
+                            const isTeamA = match.teamAPlayerIds.includes(searchedPlayerMatches.player.id);
+                            const myTeamNames = isTeamA ? match.teamA : match.teamB;
+                            const opponentTeamNames = isTeamA ? match.teamB : match.teamA;
+                            const partnerNames = myTeamNames.filter(n => n !== searchedPlayerMatches.player.name);
+                            const won = match.winningTeam === (isTeamA ? 'A' : 'B');
+
+                            return (
+                              <div key={`search-match-${match.id}`} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div className="space-y-1.5 min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs font-extrabold text-gray-400">Match #{match.matchNumber}</span>
+                                    <span className="text-xs font-bold text-gray-700">• {match.courtName}</span>
+                                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border ${won ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                      {won ? 'WIN' : 'LOSS'}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                    <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded-xl">
+                                      <span className="text-[10px] font-bold text-cyan-700 uppercase block mb-0.5">Partner / Teammate</span>
+                                      <span className="font-bold text-gray-800">{partnerNames.length > 0 ? partnerNames.join(', ') : 'None (Solo/Singles)'}</span>
+                                    </div>
+                                    <div className="text-xs bg-gray-50 border border-gray-200 p-2 rounded-xl">
+                                      <span className="text-[10px] font-bold text-rose-700 uppercase block mb-0.5">Opponents</span>
+                                      <span className="font-bold text-gray-800">{opponentTeamNames.join(', ')}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 5: MATCH LOGS */}
         {activeTab === 'matchLogs' && (
           <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
