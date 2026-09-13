@@ -2273,7 +2273,7 @@ export default function App() {
         {/* TAB 3: LEADERBOARD */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {podiumData.hasPopium && (
+            {podiumData.hasPodium && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {renderPodiumStep(podiumData.rank2, 2)}
                 {renderPodiumStep(podiumData.rank1, 1)}
@@ -2281,36 +2281,31 @@ export default function App() {
               </div>
             )}
 
-            <div className="bg-gray-50 border border-gray-200 rounded-3xl p-4 md:p-6 shadow-2xs">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-600">
-                    <Trophy className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black text-gray-900 uppercase tracking-wide">
-                      Leaderboard Standings
-                    </h2>
-                    <p className="text-gray-500 text-xs">Ranked by Bayesian Performance Score & Schedule Strength</p>
-                  </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 shadow-2xs">
+              <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">
+                    Rankings & Standings
+                  </h2>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="relative flex-1 sm:flex-initial">
                     <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search leaderboard..."
+                      placeholder="Search player..."
                       value={leaderboardSearch}
                       onChange={(e) => setLeaderboardSearch(e.target.value)}
-                      className="w-full sm:w-48 bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3 py-1.5 text-xs text-gray-900 outline-none transition"
+                      className="w-full sm:w-48 bg-white border border-gray-200 focus:border-cyan-500 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 outline-none transition"
                     />
                   </div>
 
                   <select
                     value={leaderboardFilter}
                     onChange={(e) => setLeaderboardFilter(e.target.value)}
-                    className="bg-white border border-gray-200 text-xs font-bold text-gray-700 rounded-xl px-3 py-2 outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
+                    className="bg-white border border-gray-200 text-gray-800 font-bold rounded-xl px-3 py-2 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
                   >
                     <option value="all">All Players</option>
                     <option value="checkedIn">Checked-In Only</option>
@@ -2320,18 +2315,16 @@ export default function App() {
 
               <div className="space-y-3">
                 {filteredLeaderboard.length === 0 ? (
-                  <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center text-gray-400 italic">
-                    No players found matching current filters.
+                  <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic">
+                    No players found matching your filter or search criteria.
                   </div>
                 ) : (
                   <div>
-                    <div className="hidden md:grid grid-cols-6 gap-4 px-4 pb-2 text-[11px] font-extrabold uppercase text-gray-400 tracking-wider">
-                      <div className="font-bold">Rank & Name</div>
+                    <div className="hidden md:grid grid-cols-5 gap-4 px-4 pb-2 text-[11px] font-extrabold uppercase text-gray-400 tracking-wider">
+                      <div className="font-bold">Rank & Player</div>
                       <div className="text-center font-bold">{queueMode === 'dependent' ? 'Court' : 'Level'}</div>
-                      <div className="text-center font-bold">Status</div>
                       <div className="font-bold">Raw Win %</div>
-                      <div className="font-bold text-center">Record (W-L)</div>
-                      <div className="font-bold text-right">Performance Score</div>
+                      <div className="md:col-span-2 text-center font-bold">Performance Stats</div>
                     </div>
 
                     <div className="space-y-3">
@@ -2343,7 +2336,7 @@ export default function App() {
                         return (
                           <div
                             key={`lb-${player.id}`}
-                            className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-6 items-center gap-4 relative overflow-hidden ${
+                            className={`bg-white border rounded-2xl p-4 transition-all shadow-2xs grid grid-cols-1 md:grid-cols-5 items-center gap-4 relative overflow-hidden ${
                               player.calculatedRank === 1 
                                 ? 'border-amber-300 ring-2 ring-amber-300/20 bg-amber-50/20' 
                                 : player.calculatedRank === 2
@@ -2370,6 +2363,9 @@ export default function App() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-extrabold text-sm text-gray-900 truncate">{player.name}</span>
                                   {player.calculatedRank === 1 && <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />}
+                                  {player.isCheckedIn && (
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Checked In" />
+                                  )}
                                 </div>
 
                                 {partnerName && (
@@ -2386,23 +2382,14 @@ export default function App() {
                               </span>
                             </div>
 
-                            <div className="flex items-center md:justify-center">
-                              {player.isCheckedIn ? (
-                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 font-bold text-[11px] rounded-lg border border-emerald-200">
-                                  Checked In
-                                </span>
-                              ) : (
-                                <span className="px-2.5 py-1 bg-gray-100 text-gray-500 font-bold text-[11px] rounded-lg border border-gray-200">
-                                  Checked Out
-                                </span>
-                              )}
-                            </div>
-
                             <div className="space-y-1.5 md:col-span-1">
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-extrabold text-amber-600">{rawWinRatePercent}%</span>
+                                {!player.isQualified && (
+                                  <span className="text-[10px] text-gray-400 italic">(&lt; 5 games)</span>
+                                )}
                               </div>
-                              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200">
+                              <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden border border-gray-200">
                                 <div
                                   className={`h-full rounded-full transition-all duration-500 ${
                                     rawWinRatePercent >= 60 ? 'bg-emerald-500' : rawWinRatePercent >= 45 ? 'bg-amber-500' : 'bg-rose-500'
@@ -2412,16 +2399,28 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div className="text-xs font-semibold text-center md:col-span-1">
-                              <span className="text-emerald-600 font-extrabold">{player.wins}W</span> - <span className="text-rose-600 font-extrabold">{player.losses}L</span>
-                              <span className="text-gray-400 block text-[10px] font-mono mt-0.5">{player.gamesPlayed} games played</span>
-                            </div>
+                            <div className="grid grid-cols-4 gap-2 md:col-span-2 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 text-xs font-semibold text-center">
+                              <div className="px-1">
+                                <span className="text-[10px] text-gray-400 block uppercase font-bold">Played</span>
+                                <span className="text-cyan-700 font-extrabold text-sm">{player.gamesPlayed}</span>
+                              </div>
 
-                            <div className="text-right md:col-span-1">
-                              <span className="text-base font-black text-cyan-700 font-mono">
-                                {(player.finalScore * 100).toFixed(1)}
-                              </span>
-                              <span className="text-gray-400 block text-[10px] font-bold uppercase tracking-wider">Score</span>
+                              <div className="px-1">
+                                <span className="text-[10px] text-gray-400 block uppercase font-bold">W / L</span>
+                                <span className="text-gray-800 font-bold">
+                                  <span className="text-emerald-600">{player.wins}</span> - <span className="text-rose-600">{player.losses}</span>
+                                </span>
+                              </div>
+
+                              <div className="px-1">
+                                <span className="text-[10px] text-gray-400 block uppercase font-bold" title="Schedule Strength">SoS</span>
+                                <span className="text-purple-600 font-bold">{player.scheduleStrength || 0}%</span>
+                              </div>
+
+                              <div className="px-1">
+                                <span className="text-[10px] text-gray-400 block uppercase font-bold">Time</span>
+                                <span className="text-cyan-700 font-bold font-mono">{formatDuration(player.timePlayedSec)}</span>
+                              </div>
                             </div>
                           </div>
                         );
