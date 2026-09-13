@@ -2497,7 +2497,7 @@ export default function App() {
                           <span>•</span>
                           <span>Record: <strong className="text-emerald-600">{searchedPlayerMatches.player.wins}W</strong> - <strong className="text-rose-600">{searchedPlayerMatches.player.losses}L</strong></span>
                           <span>•</span>
-                          <span>Level/Court: <strong className="text-cyan-700">{searchedPlayerMatches.player.level}</strong></span>
+                          <span>{queueMode === 'independent' ? 'Level:' : 'Court:'} <strong className="text-cyan-700">{searchedPlayerMatches.player.level}</strong></span>
                         </div>
                       </div>
                       <div className="bg-cyan-50 border border-cyan-200 px-4 py-2 rounded-xl text-center">
@@ -2529,6 +2529,9 @@ export default function App() {
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-xs font-extrabold text-gray-400">Match #{match.matchNumber}</span>
                                     <span className="text-xs font-bold text-gray-700">• {match.courtName}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${getCourtLevelBadgeStyle(match.level || 1)}`}>
+                                      Level {match.level || 1}
+                                    </span>
                                     <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border ${won ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                                       {won ? 'WIN' : 'LOSS'}
                                     </span>
