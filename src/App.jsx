@@ -1499,7 +1499,7 @@ export default function App() {
 
                               {partnerName && (
                                 <div className="text-[11px] font-semibold text-cyan-700 flex items-center gap-1 truncate">
-                                  <Link className="w-3 h-3 shrink-0" /> {partnerName}
+                                  <Link className="w-3 h-3 shrink-0" /> Partner: {partnerName}
                                 </div>
                               )}
                             </div>
