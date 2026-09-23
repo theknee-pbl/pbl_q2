@@ -111,7 +111,7 @@ const calculateScheduleStrength = (playerId, rosterData, historyData) => {
 };
 
 // --- CORE BAYESIAN & RANKING METRIC CALCULATOR ---
-const calculateAdvancedPlayerMetrics = (player) => {
+const calculateAdvancedPlayerMetrics = (player, matchHistory = []) => {
   const games = player.gamesPlayed || 0;
   const wins = player.wins || 0;
   
@@ -125,11 +125,19 @@ const calculateAdvancedPlayerMetrics = (player) => {
   const MIN_GAMES_THRESHOLD = 5;
   const isQualified = games >= MIN_GAMES_THRESHOLD;
 
+  // Calculate average waiting time (in seconds)
+  const waitDurationSec = player.checkedInAt ? Math.max(0, Math.floor((Date.now() - player.checkedInAt) / 1000)) : 0;
+
+  // Fixed syntax error by properly wrapping the fallback value
+  const totalWaitSec = (player.totalWaitTimeSec || 0) + waitDurationSec;
+  const avgWaitTimeSec = games > 0 ? Math.round(totalWaitSec / games) : 0;
+
   return {
     rawWinRate: games > 0 ? (wins / games) : 0,
     bayesianWinRate,
     finalScore,
-    isQualified
+    isQualified,
+    avgWaitTimeSec
   };
 };
 
@@ -2469,9 +2477,12 @@ export default function App() {
                                 <span className="text-purple-600 font-bold">{player.scheduleStrength || 0}%</span>
                               </div>
 
+                              {/* Average wait time */}
                               <div className="px-1">
-                                <span className="text-[10px] text-gray-400 block uppercase font-bold">Time</span>
-                                <span className="text-cyan-700 font-bold font-mono">{formatDuration(player.timePlayedSec)}</span>
+                                <span className="text-[10px] text-gray-400 block uppercase font-bold">Avg Wait</span>
+                                <span className="text-cyan-700 font-bold font-mono">
+                                  {formatDuration(player.avgWaitTimeSec || 0)}
+                                </span>
                               </div>
                             </div>
                           </div>
