@@ -2150,6 +2150,41 @@ export default function App() {
                       const partnerName = getPartnerName(player.partnerId);
                       const isOnCourt = activeCourtPlayerIds.has(player.id);
 
+                      // Helper to check out a player and replace them if they are currently playing on court
+                      const handleCheckoutPlayer = (playerId) => {
+                        // 1. Identify which court the player is currently on, if any
+                        const targetCourt = courts.find(c => [...c.teamA, ...c.teamB].some(p => p.id === playerId));
+
+                        if (targetCourt) {
+                          // Player is currently playing on a court!
+                          const isTeamA = targetCourt.teamA.some(p => p.id === playerId);
+                          
+                          // Determine the queue source based on queue mode
+                          let replacementCandidate = null;
+                          if (queueMode === 'dependent') {
+                            const courtQueue = getQueueForCourtDependent(targetCourt.id);
+                            // Find first checked-in player not on any court who has the same level or from queue
+                            replacementCandidate = courtQueue.find(p => p.id !== playerId && !activeCourtPlayerIds.has(p.id) && p.level === player.level) || courtQueue.find(p => p.id !== playerId && !activeCourtPlayerIds.has(p.id));
+                          } else {
+                            const levelQueue = getQueueForLevelIndependent(targetCourt.level || player.level);
+                            replacementCandidate = levelQueue.find(p => p.id !== playerId && !activeCourtPlayerIds.has(p.id));
+                          }
+
+                          // Update courts to replace the player
+                          setCourts(prevCourts => prevCourts.map(c => {
+                            if (c.id === targetCourt.id) {
+                              const newTeamA = c.teamA.map(p => p.id === playerId && replacementCandidate ? replacementCandidate : p);
+                              const newTeamB = c.teamB.map(p => p.id === playerId && replacementCandidate ? replacementCandidate : p);
+                              return { ...c, teamA: newTeamA, teamB: newTeamB };
+                            }
+                            return c;
+                          }));
+                        }
+
+                        // 2. Proceed with normal check-out toggle
+                        handleToggleCheckIn(playerId);
+                      };
+
                       return (
                         <div key={`ci-${player.id}`} className="bg-white border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs">
                           <div className="space-y-1 min-w-0 flex-1">
@@ -2171,7 +2206,7 @@ export default function App() {
                           <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto justify-between sm:justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                             {isOnCourt ? (
                               <span className="px-3 py-1 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200">
-                                On Court
+                                On Court (Active)
                               </span>
                             ) : (
                               <span className="px-3 py-1 bg-cyan-50 text-cyan-700 font-bold text-xs rounded-xl border border-cyan-200 font-mono">
@@ -2191,7 +2226,7 @@ export default function App() {
                               )}
 
                               <button
-                                onClick={() => handleToggleCheckIn(player.id)}
+                                onClick={() => handleCheckoutPlayer(player.id)}
                                 className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl transition cursor-pointer text-xs font-bold border border-rose-200 flex items-center gap-1"
                               >
                                 <UserX className="w-3.5 h-3.5" /> Check Out
