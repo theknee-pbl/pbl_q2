@@ -2676,15 +2676,13 @@ export default function App() {
 
                         <button
                           onClick={() => handleSwapMatchWinner(match.id)}
-                          disabled={!isWithinTwoMinutes}
+                          // disabled={!isWithinTwoMinutes}
                           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                            isWithinTwoMinutes
-                              ? 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer shadow-xs'
-                              : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                           'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer shadow-xs'
                           }`}
-                          title={isWithinTwoMinutes ? "Swap Winner (Available for 2 mins)" : "Swap Winner disabled (2 minutes elapsed)"}
+                          title={"Swap Winner (Available for 2 mins)" }
                         >
-                          <Repeat className="w-3.5 h-3.5" /> Swap Winner {!isWithinTwoMinutes && '(Locked)'}
+                          <Repeat className="w-3.5 h-3.5" /> Swap Winner 
                         </button>
                       </div>
                     </div>
