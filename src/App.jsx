@@ -78,6 +78,67 @@ function PBLLogo({ className = "w-20 h-20" }) {
   );
 }
 
+// --- LONG PRESS BUTTON COMPONENT ---
+function LongPressButton({ onLongPress, className, children, title }) {
+  const [progress, setProgress] = useState(0);
+  const timerRef = useRef(null);
+  const isPressingRef = useRef(false);
+
+  const startPress = (e) => {
+    if (e.type === 'mousedown' && e.button !== 0) return;
+    isPressingRef.current = true;
+    setProgress(0);
+    const startTime = Date.now();
+    const duration = 600; // 600ms hold time
+
+    const updateProgress = () => {
+      if (!isPressingRef.current) return;
+      const elapsed = Date.now() - startTime;
+      const currentProgress = Math.min((elapsed / duration) * 100, 100);
+      setProgress(currentProgress);
+
+      if (elapsed < duration) {
+        timerRef.current = requestAnimationFrame(updateProgress);
+      } else {
+        isPressingRef.current = false;
+        setProgress(100);
+        onLongPress();
+        setTimeout(() => setProgress(0), 400);
+      }
+    };
+
+    timerRef.current = requestAnimationFrame(updateProgress);
+  };
+
+  const cancelPress = () => {
+    if (!isPressingRef.current) return;
+    isPressingRef.current = false;
+    if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    setProgress(0);
+  };
+
+  return (
+    <button
+      type="button"
+      onMouseDown={startPress}
+      onMouseUp={cancelPress}
+      onMouseLeave={cancelPress}
+      onTouchStart={startPress}
+      onTouchEnd={cancelPress}
+      title={title}
+      className={`${className} relative overflow-hidden select-none cursor-pointer`}
+    >
+      <div 
+        className="absolute inset-0 bg-black/15 pointer-events-none transition-all duration-75"
+        style={{ width: `${progress}%` }}
+      />
+      <span className="relative z-10 flex items-center justify-center gap-1 w-full">
+        {children}
+      </span>
+    </button>
+  );
+}
+
 // --- SCHEDULE STRENGTH (SoS) CALCULATION HELPER ---
 const calculateScheduleStrength = (playerId, rosterData, historyData) => {
   const opponentIds = new Set();
@@ -125,10 +186,7 @@ const calculateAdvancedPlayerMetrics = (player, matchHistory = []) => {
   const MIN_GAMES_THRESHOLD = 5;
   const isQualified = games >= MIN_GAMES_THRESHOLD;
 
-  // Calculate average waiting time (in seconds)
   const waitDurationSec = player.checkedInAt ? Math.max(0, Math.floor((Date.now() - player.checkedInAt) / 1000)) : 0;
-
-  // Fixed syntax error by properly wrapping the fallback value
   const totalWaitSec = (player.totalWaitTimeSec || 0) + waitDurationSec;
   const avgWaitTimeSec = games > 0 ? Math.round(totalWaitSec / games) : 0;
 
@@ -200,7 +258,7 @@ export default function App() {
       name: `Court 0${i + 1}`,
       teamA: [],
       teamB: [],
-      firstServe: null, // 'A' or 'B'
+      firstServe: null,
       isLive: false,
       startTime: null,
       totalPlayTimeSec: 0
@@ -339,7 +397,6 @@ export default function App() {
     const targetPlayer = roster.find(p => p.name.toLowerCase().includes(query));
     if (!targetPlayer) return { player: null, matches: [] };
 
-    // Find all matches involving this targetPlayer
     const matches = matchHistory.filter(m => 
       m.teamAPlayerIds.includes(targetPlayer.id) || m.teamBPlayerIds.includes(targetPlayer.id)
     );
@@ -1759,7 +1816,6 @@ export default function App() {
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {/* Team A Card */}
                                 <div className="bg-gray-50 border border-cyan-200 p-3 rounded-xl flex flex-col justify-between">
                                   <span className="text-[10px] font-black tracking-wider text-cyan-700 uppercase mb-2 flex items-center gap-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" /> Team A
@@ -1774,7 +1830,6 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                {/* Team B Card */}
                                 <div className="bg-gray-50 border border-rose-200 p-3 rounded-xl flex flex-col justify-between">
                                   <span className="text-[10px] font-black tracking-wider text-rose-700 uppercase mb-2 flex items-center gap-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Team B
@@ -1882,12 +1937,13 @@ export default function App() {
                                       {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-cyan-600 ml-1" />}
                                     </div>
                                   ))}
-                                  <button
-                                    onClick={() => handleFinishMatch(court.id, 'A')}
-                                    className="mt-2 w-full py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[11px] rounded border border-cyan-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                                  <LongPressButton
+                                    onLongPress={() => handleFinishMatch(court.id, 'A')}
+                                    title="Long press to record Team A win"
+                                    className="mt-2 w-full py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[11px] rounded border border-cyan-200 transition flex items-center justify-center gap-1"
                                   >
                                     <CheckCircle2 className="w-3 h-3" /> Team A Wins
-                                  </button>
+                                  </LongPressButton>
                                 </div>
 
                                 <div className="bg-white border-l-4 border-rose-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs min-w-0">
@@ -1897,12 +1953,13 @@ export default function App() {
                                       {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-rose-600 ml-1" />}
                                     </div>
                                   ))}
-                                  <button
-                                    onClick={() => handleFinishMatch(court.id, 'B')}
-                                    className="mt-2 w-full py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                                  <LongPressButton
+                                    onLongPress={() => handleFinishMatch(court.id, 'B')}
+                                    title="Long press to record Team B win"
+                                    className="mt-2 w-full py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition flex items-center justify-center gap-1"
                                   >
                                     <CheckCircle2 className="w-3 h-3" /> Team B Wins
-                                  </button>
+                                  </LongPressButton>
                                 </div>
                               </div>
                             </div>
@@ -1931,27 +1988,11 @@ export default function App() {
                                     <span className="shrink-0">#{idx + 1}</span> <span className="truncate">{p.name}</span> 
                                     {p.partnerId && <Link className="w-3 h-3 text-cyan-600 shrink-0" title="Has Fixed Partner" />}
                                   </span>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <div className="flex items-center gap-0.5">
-                                      <button 
-                                        onClick={() => handleReorderQueue(p.id, 'up', courtQueue)} 
-                                        disabled={idx === 0} 
-                                        className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1"
-                                      >
-                                        ▲
-                                      </button>
-                                      <button 
-                                        onClick={() => handleReorderQueue(p.id, 'down', courtQueue)} 
-                                        disabled={idx === courtQueue.length - 1} 
-                                        className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1"
-                                      >
-                                        ▼
-                                      </button>
-                                    </div>
-                                    <span className="text-[9px] text-cyan-600 font-mono">{p.gamesPlayed}G</span>
-                                  </div>
                                 </div>
                               ))}
+                              {courtQueue.length === 0 && (
+                                <div className="text-[10px] text-gray-400 italic text-center py-2">Queue is empty</div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -1960,73 +2001,6 @@ export default function App() {
                   })}
                 </div>
               </div>
-
-              {queueMode === 'independent' && (
-                <div className="space-y-4 pt-4 border-t border-gray-200">
-                  <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-cyan-600" /> Level Queues (Waiting Lists)
-                  </h2>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {Array.from({ length: totalLevelCount }, (_, i) => i + 1).map((lvl) => {
-                      const levelQueue = getQueueForLevelIndependent(lvl);
-                      return (
-                        <div key={`level-q-${lvl}`} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
-                          <div>
-                            <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
-                              <span className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
-                                Level {lvl} Queue
-                              </span>
-                              <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full border shadow-2xs ${getCourtLevelBadgeStyle(lvl)}`}>
-                                {levelQueue.length} waiting
-                              </span>
-                            </div>
-
-                            {levelQueue.length === 0 ? (
-                              <p className="text-xs text-gray-400 italic py-3 text-center">No players currently in Level {lvl} queue</p>
-                            ) : (
-                              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
-                                {levelQueue.map((player, idx) => (
-                                  <div key={player.id} className="flex justify-between items-center px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs gap-1">
-                                    <div className="flex items-center gap-2 truncate min-w-0 flex-1">
-                                      <span className="font-bold text-gray-400 shrink-0">#{idx + 1}</span>
-                                      <span className="font-bold text-gray-800 truncate flex items-center gap-1 min-w-0">
-                                        <span className="truncate">{player.name}</span> 
-                                        {player.partnerId && <Link className="w-3 h-3 text-amber-500 shrink-0" title="Has Fixed Partner" />}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <div className="flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded px-1">
-                                        <button 
-                                          onClick={() => handleReorderQueue(player.id, 'up', levelQueue)} 
-                                          disabled={idx === 0} 
-                                          className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1 text-[11px]"
-                                        >
-                                          ▲
-                                        </button>
-                                        <button 
-                                          onClick={() => handleReorderQueue(player.id, 'down', levelQueue)} 
-                                          disabled={idx === levelQueue.length - 1} 
-                                          className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1 text-[11px]"
-                                        >
-                                          ▼
-                                        </button>
-                                      </div>
-                                      <span className="text-[11px] font-mono text-cyan-700 font-semibold bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded flex items-center gap-1">
-                                        <Trophy className="w-3 h-3 text-cyan-500 inline" /> {player.gamesPlayed}G
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -2692,6 +2666,7 @@ export default function App() {
             )}
           </section>
         )}
+
       </main>
     </div>
   );
