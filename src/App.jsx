@@ -1266,7 +1266,7 @@ export default function App() {
           <div className="flex flex-col items-center text-center mb-6">
             <PBLLogo className="w-20 h-20 mb-3 shadow-sm" />
             <h1 className="text-2xl font-extrabold tracking-wider text-gray-900 uppercase">
-              PBL Queueing System
+              PickleBol-anons Queueing System
             </h1>
             <p className="text-gray-500 text-xs mt-1">
               Please sign in to access the courts & queues.
