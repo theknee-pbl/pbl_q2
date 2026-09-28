@@ -1331,7 +1331,7 @@ export default function App() {
           <PBLLogo className="w-16 h-16 md:w-24 md:h-24" />
           <div className="min-w-0 flex-1">
             <h1 className="text-xl md:text-3xl font-extrabold tracking-wider text-gray-900 uppercase truncate">
-              PBL Queueing
+              PickleBol-anons Queueing
             </h1>
             <p className="text-gray-500 text-xs md:text-sm mt-0.5 md:mt-1">
               {queueMode === 'independent' ? 'Court-Independent Level Queue & Rating System' : 'Highest Court Priority Ladder & Rating System'}
