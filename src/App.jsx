@@ -2001,8 +2001,76 @@ export default function App() {
                   })}
                 </div>
               </div>
+
+              {queueMode === 'independent' && (
+                <div className="space-y-4 pt-4 border-t border-gray-200">
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-cyan-600" /> Level Queues (Waiting Lists)
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {Array.from({ length: totalLevelCount }, (_, i) => i + 1).map((lvl) => {
+                      const levelQueue = getQueueForLevelIndependent(lvl);
+                      return (
+                        <div key={`level-q-${lvl}`} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
+                              <span className="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
+                                Level {lvl} Queue
+                              </span>
+                              <span className={`text-xs font-extrabold px-2.5 py-0.5 rounded-full border shadow-2xs ${getCourtLevelBadgeStyle(lvl)}`}>
+                                {levelQueue.length} waiting
+                              </span>
+                            </div>
+
+                            {levelQueue.length === 0 ? (
+                              <p className="text-xs text-gray-400 italic py-3 text-center">No players currently in Level {lvl} queue</p>
+                            ) : (
+                              <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                                {levelQueue.map((player, idx) => (
+                                  <div key={player.id} className="flex justify-between items-center px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs gap-1">
+                                    <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                                      <span className="font-bold text-gray-400 shrink-0">#{idx + 1}</span>
+                                      <span className="font-bold text-gray-800 truncate flex items-center gap-1 min-w-0">
+                                        <span className="truncate">{player.name}</span> 
+                                        {player.partnerId && <Link className="w-3 h-3 text-amber-500 shrink-0" title="Has Fixed Partner" />}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <div className="flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded px-1">
+                                        <button 
+                                          onClick={() => handleReorderQueue(player.id, 'up', levelQueue)} 
+                                          disabled={idx === 0} 
+                                          className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1 text-[11px]"
+                                        >
+                                          ▲
+                                        </button>
+                                        <button 
+                                          onClick={() => handleReorderQueue(player.id, 'down', levelQueue)} 
+                                          disabled={idx === levelQueue.length - 1} 
+                                          className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1 text-[11px]"
+                                        >
+                                          ▼
+                                        </button>
+                                      </div>
+                                      <span className="text-[11px] font-mono text-cyan-700 font-semibold bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <Trophy className="w-3 h-3 text-cyan-500 inline" /> {player.gamesPlayed}G
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+          
         )}
 
         {/* TAB 2: PLAYERS ROSTER */}
