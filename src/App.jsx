@@ -78,67 +78,6 @@ function PBLLogo({ className = "w-20 h-20" }) {
   );
 }
 
-// --- LONG PRESS BUTTON COMPONENT ---
-function LongPressButton({ onLongPress, className, children, title }) {
-  const [progress, setProgress] = useState(0);
-  const timerRef = useRef(null);
-  const isPressingRef = useRef(false);
-
-  const startPress = (e) => {
-    if (e.type === 'mousedown' && e.button !== 0) return;
-    isPressingRef.current = true;
-    setProgress(0);
-    const startTime = Date.now();
-    const duration = 600; // 600ms hold time
-
-    const updateProgress = () => {
-      if (!isPressingRef.current) return;
-      const elapsed = Date.now() - startTime;
-      const currentProgress = Math.min((elapsed / duration) * 100, 100);
-      setProgress(currentProgress);
-
-      if (elapsed < duration) {
-        timerRef.current = requestAnimationFrame(updateProgress);
-      } else {
-        isPressingRef.current = false;
-        setProgress(100);
-        onLongPress();
-        setTimeout(() => setProgress(0), 400);
-      }
-    };
-
-    timerRef.current = requestAnimationFrame(updateProgress);
-  };
-
-  const cancelPress = () => {
-    if (!isPressingRef.current) return;
-    isPressingRef.current = false;
-    if (timerRef.current) cancelAnimationFrame(timerRef.current);
-    setProgress(0);
-  };
-
-  return (
-    <button
-      type="button"
-      onMouseDown={startPress}
-      onMouseUp={cancelPress}
-      onMouseLeave={cancelPress}
-      onTouchStart={startPress}
-      onTouchEnd={cancelPress}
-      title={title}
-      className={`${className} relative overflow-hidden select-none cursor-pointer`}
-    >
-      <div 
-        className="absolute inset-0 bg-black/15 pointer-events-none transition-all duration-75"
-        style={{ width: `${progress}%` }}
-      />
-      <span className="relative z-10 flex items-center justify-center gap-1 w-full">
-        {children}
-      </span>
-    </button>
-  );
-}
-
 // --- SCHEDULE STRENGTH (SoS) CALCULATION HELPER ---
 const calculateScheduleStrength = (playerId, rosterData, historyData) => {
   const opponentIds = new Set();
@@ -186,7 +125,10 @@ const calculateAdvancedPlayerMetrics = (player, matchHistory = []) => {
   const MIN_GAMES_THRESHOLD = 5;
   const isQualified = games >= MIN_GAMES_THRESHOLD;
 
+  // Calculate average waiting time (in seconds)
   const waitDurationSec = player.checkedInAt ? Math.max(0, Math.floor((Date.now() - player.checkedInAt) / 1000)) : 0;
+
+  // Fixed syntax error by properly wrapping the fallback value
   const totalWaitSec = (player.totalWaitTimeSec || 0) + waitDurationSec;
   const avgWaitTimeSec = games > 0 ? Math.round(totalWaitSec / games) : 0;
 
@@ -258,7 +200,7 @@ export default function App() {
       name: `Court 0${i + 1}`,
       teamA: [],
       teamB: [],
-      firstServe: null,
+      firstServe: null, // 'A' or 'B'
       isLive: false,
       startTime: null,
       totalPlayTimeSec: 0
@@ -397,6 +339,7 @@ export default function App() {
     const targetPlayer = roster.find(p => p.name.toLowerCase().includes(query));
     if (!targetPlayer) return { player: null, matches: [] };
 
+    // Find all matches involving this targetPlayer
     const matches = matchHistory.filter(m => 
       m.teamAPlayerIds.includes(targetPlayer.id) || m.teamBPlayerIds.includes(targetPlayer.id)
     );
@@ -928,6 +871,15 @@ export default function App() {
   };
 
   const handleFinishMatch = (courtId, winningTeamKey) => {
+    const targetCourt = courts.find((c) => c.id === courtId);
+    const winningTeamNames = winningTeamKey === 'A' 
+      ? targetCourt?.teamA.map(p => p.name).join(' & ') 
+      : targetCourt?.teamB.map(p => p.name).join(' & ');
+
+    if (!window.confirm(`Are you sure you want to declare Team ${winningTeamKey} (${winningTeamNames}) as the winner?`)) {
+      return;
+    }
+
     setCourts((prevCourts) => {
       const courtIndex = prevCourts.findIndex((c) => c.id === courtId);
       const currentCourt = prevCourts[courtIndex];
@@ -1816,6 +1768,7 @@ export default function App() {
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Team A Card */}
                                 <div className="bg-gray-50 border border-cyan-200 p-3 rounded-xl flex flex-col justify-between">
                                   <span className="text-[10px] font-black tracking-wider text-cyan-700 uppercase mb-2 flex items-center gap-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" /> Team A
@@ -1830,6 +1783,7 @@ export default function App() {
                                   </div>
                                 </div>
 
+                                {/* Team B Card */}
                                 <div className="bg-gray-50 border border-rose-200 p-3 rounded-xl flex flex-col justify-between">
                                   <span className="text-[10px] font-black tracking-wider text-rose-700 uppercase mb-2 flex items-center gap-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Team B
@@ -1853,156 +1807,163 @@ export default function App() {
                 </div>
               </div>
             )}
-            
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
-                  <Play className="w-5 h-5 text-emerald-600 fill-emerald-600" /> Courts {queueMode === 'dependent' && <span className="text-xs text-amber-600 font-semibold">(Court 01 is Highest Priority)</span>}
+
+            {/* COURTS SECTION */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-base md:text-lg font-black uppercase tracking-wider text-gray-900 flex items-center gap-2">
+                  <LayoutGrid className="w-5 h-5 text-cyan-600" /> Active Courts ({courts.length})
                 </h2>
+              </div>
 
-                <div className={`grid grid-cols-1 ${queueMode === 'dependent' || queueMode === 'independent' ? 'md:grid-cols-2 xl:grid-cols-3' : ''} gap-4`}>
-                  {courts.map((court) => {
-                    const isOccupied = court.teamA.length > 0 || court.teamB.length > 0;
-                    const liveElapsedSec = court.isLive && court.startTime ? Math.max(0, Math.floor((now - court.startTime) / 1000)) : 0;
-                    const courtQueue = queueMode === 'dependent' ? getQueueForCourtDependent(court.id) : [];
-
-                    return (
-                      <div key={court.id} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-2xs flex flex-col justify-between">
-                        <div>
-                          <div className="flex flex-col gap-2 mb-3 pb-3 border-b border-gray-200">
-                            <div className="flex flex-wrap justify-between items-center gap-2 mb-1">
-                              {editingCourtId === court.id ? (
-                                <div className="flex items-center gap-1.5 w-full sm:w-auto flex-1 min-w-[200px]">
-                                  <input
-                                    type="text"
-                                    value={tempCourtName}
-                                    onChange={(e) => setTempCourtName(e.target.value)}
-                                    className="bg-white border border-cyan-500 rounded px-2 py-1 text-xs font-bold text-gray-900 outline-none flex-1 min-w-0"
-                                    autoFocus
-                                  />
-                                  <button onClick={() => handleSaveCourtName(court.id)} className="p-1 bg-emerald-600 text-white rounded hover:bg-emerald-500 cursor-pointer shrink-0"><Check className="w-3.5 h-3.5" /></button>
-                                  <button onClick={() => setEditingCourtId(null)} className="p-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 cursor-pointer shrink-0"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-                                  <span className="font-extrabold text-base text-gray-900 truncate">{court.name}</span>
-                                  <button onClick={() => { setEditingCourtId(court.id); setTempCourtName(court.name); }} className="text-gray-400 hover:text-cyan-600 cursor-pointer shrink-0"><Edit2 className="w-3.5 h-3.5" /></button>
-                                </div>
-                              )}
-
-                              {isOccupied ? (
-                                <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shrink-0 ml-auto">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-gray-600 font-medium bg-gray-200 border border-gray-300 px-2.5 py-0.5 rounded-full shrink-0 ml-auto">
-                                  Ready
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="flex justify-between items-center flex-wrap gap-2">
-                              {queueMode === 'independent' ? (
-                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border shadow-2xs ${getCourtLevelBadgeStyle(court.level)}`}>
-                                  Level {court.level}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Court Priority</span>
-                              )}
-
-                              <span className="text-xs text-gray-500 font-mono bg-white border border-gray-200 px-2 py-0.5 rounded flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-cyan-600" /> {formatDuration(liveElapsedSec)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {isOccupied ? (
-                            <div className="space-y-3 my-2">
-                              {court.firstServe && (
-                                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs font-bold text-amber-900">
-                                  <span className="flex items-center gap-1.5">
-                                    <CircleDot className="w-4 h-4 text-amber-600 animate-spin shrink-0" /> First Serve:
-                                  </span>
-                                  <span className={`px-2 py-0.5 rounded text-[11px] ${court.firstServe === 'A' ? 'bg-cyan-600 text-white' : 'bg-rose-600 text-white'}`}>
-                                    Team {court.firstServe}
-                                  </span>
-                                </div>
-                              )}
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="bg-white border-l-4 border-cyan-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs min-w-0">
-                                  <span className="text-[10px] font-bold text-cyan-600 uppercase tracking-wider block mb-1">Team A</span>
-                                  {court.teamA.map((p) => (
-                                    <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
-                                      {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-cyan-600 ml-1" />}
-                                    </div>
-                                  ))}
-                                  <LongPressButton
-                                    onLongPress={() => handleFinishMatch(court.id, 'A')}
-                                    title="Long press to record Team A win"
-                                    className="mt-2 w-full py-1.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[11px] rounded border border-cyan-200 transition flex items-center justify-center gap-1"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3" /> Team A Wins
-                                  </LongPressButton>
-                                </div>
-
-                                <div className="bg-white border-l-4 border-rose-500 border-y border-r border-gray-200 p-2.5 rounded-lg shadow-2xs min-w-0">
-                                  <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block mb-1">Team B</span>
-                                  {court.teamB.map((p) => (
-                                    <div key={p.id} className="text-xs py-0.5 font-semibold text-gray-800 truncate">
-                                      {p.name} {p.partnerId && <Link className="w-3 h-3 inline text-rose-600 ml-1" />}
-                                    </div>
-                                  ))}
-                                  <LongPressButton
-                                    onLongPress={() => handleFinishMatch(court.id, 'B')}
-                                    title="Long press to record Team B win"
-                                    className="mt-2 w-full py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-[11px] rounded border border-rose-200 transition flex items-center justify-center gap-1"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3" /> Team B Wins
-                                  </LongPressButton>
-                                </div>
-                              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {courts.map((court) => {
+                  return (
+                    <div 
+                      key={court.id} 
+                      className={`bg-white border rounded-3xl p-5 shadow-sm transition flex flex-col justify-between relative overflow-hidden ${
+                        court.isLive ? 'border-cyan-500 ring-2 ring-cyan-500/10' : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-100">
+                        <div className="flex items-center gap-2">
+                          {editingCourtId === court.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={tempCourtName}
+                                onChange={(e) => setTempCourtName(e.target.value)}
+                                className="bg-gray-50 border border-cyan-500 rounded-lg px-2 py-1 text-xs font-bold text-gray-900 outline-none w-28"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleSaveCourtName(court.id)}
+                                className="p-1 bg-cyan-600 text-white rounded-lg hover:bg-cyan-500 cursor-pointer"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           ) : (
-                            <div className="py-3 px-2 text-center border-2 border-dashed border-gray-200 rounded-xl my-2">
+                            <div className="flex items-center gap-1.5 group">
+                              <h3 className="font-extrabold text-sm text-gray-900 uppercase tracking-wide">{court.name}</h3>
                               <button
-                                onClick={() => generateMatchForCourt(court.id)}
-                                disabled={!sessionActive || (queueMode === 'dependent' && courtQueue.length < 4)}
-                                className="w-full py-2 px-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                onClick={() => {
+                                  setEditingCourtId(court.id);
+                                  setTempCourtName(court.name);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-cyan-600 transition cursor-pointer"
+                                title="Edit Court Name"
                               >
-                                <Sparkles className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Pull Next Match to {court.name} {queueMode === 'dependent' ? `(${courtQueue.length}/4)` : ''}</span>
+                                <Edit2 className="w-3 h-3" />
                               </button>
                             </div>
                           )}
                         </div>
 
-                        {queueMode === 'dependent' && (
-                          <div className="mt-3 pt-2.5 border-t border-gray-200">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-[11px] font-bold text-gray-700">Court Queue ({courtQueue.length})</span>
-                            </div>
-                            <div className="space-y-1 max-h-[120px] overflow-y-auto">
-                              {courtQueue.map((p, idx) => (
-                                <div key={p.id} className="flex justify-between items-center px-2 py-1 bg-white border border-gray-200 rounded text-[11px] gap-1">
-                                  <span className="font-medium text-gray-800 truncate flex items-center gap-1 min-w-0 flex-1">
-                                    <span className="shrink-0">#{idx + 1}</span> <span className="truncate">{p.name}</span> 
-                                    {p.partnerId && <Link className="w-3 h-3 text-cyan-600 shrink-0" title="Has Fixed Partner" />}
-                                  </span>
-                                </div>
-                              ))}
-                              {courtQueue.length === 0 && (
-                                <div className="text-[10px] text-gray-400 italic text-center py-2">Queue is empty</div>
-                              )}
-                            </div>
-                          </div>
+                        {court.isLive ? (
+                          <span className="text-[10px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" /> LIVE Match
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black tracking-wider uppercase bg-gray-100 text-gray-500 border border-gray-200 px-2.5 py-1 rounded-full">
+                            Available
+                          </span>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
 
-              {queueMode === 'independent' && (
+                      {court.isLive ? (
+                        <div className="space-y-4 my-auto">
+                          {queueMode === 'independent' && (
+                            <div className="flex justify-center mb-2">
+                              <span className={`text-xs font-black px-3 py-1 rounded-lg border shadow-2xs ${getCourtLevelBadgeStyle(court.level || 1)}`}>
+                                Level {court.level || 1} Match
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-cyan-50/50 border border-cyan-200/80 rounded-2xl p-3.5 flex flex-col justify-between">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black tracking-wider uppercase text-cyan-700">Team A</span>
+                                {court.firstServe === 'A' && (
+                                  <span className="text-[9px] font-black bg-cyan-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">Serve</span>
+                                )}
+                              </div>
+                              <div className="space-y-1.5">
+                                {court.teamA.map((p) => (
+                                  <div key={p.id} className="text-xs font-bold text-gray-900 bg-white px-3 py-2 rounded-xl border border-cyan-100 shadow-2xs truncate">
+                                    {p.name}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="bg-rose-50/50 border border-rose-200/80 rounded-2xl p-3.5 flex flex-col justify-between">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black tracking-wider uppercase text-rose-700">Team B</span>
+                                {court.firstServe === 'B' && (
+                                  <span className="text-[9px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">Serve</span>
+                                )}
+                              </div>
+                              <div className="space-y-1.5">
+                                {court.teamB.map((p) => (
+                                  <div key={p.id} className="text-xs font-bold text-gray-900 bg-white px-3 py-2 rounded-xl border border-rose-100 shadow-2xs truncate">
+                                    {p.name}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-2">
+                            <div className="text-center mb-3">
+                              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Elapsed Time: </span>
+                              <span className="text-xs font-mono font-bold text-gray-700">
+                                {formatDuration(court.startTime ? Math.floor((now - court.startTime) / 1000) : 0)}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={() => handleFinishMatch(court.id, 'A')}
+                                className="py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                              >
+                                <CheckCircle2 className="w-4 h-4" /> Team A Wins
+                              </button>
+                              <button
+                                onClick={() => handleFinishMatch(court.id, 'B')}
+                                className="py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-extrabold rounded-xl text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                              >
+                                <CheckCircle2 className="w-4 h-4" /> Team B Wins
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-8 text-center my-auto space-y-4">
+                          <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center mx-auto text-gray-400">
+                            <Play className="w-6 h-6 ml-0.5" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-gray-700 block">Court is ready for next match</span>
+                            <span className="text-[11px] text-gray-400 mt-0.5 block">Click below to pull next players from queue</span>
+                          </div>
+                          <button
+                            onClick={() => generateMatchForCourt(court.id)}
+                            className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs transition cursor-pointer shadow-md shadow-cyan-950/10 flex items-center justify-center gap-2"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current" /> Start Match on {court.name}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* QUEUES SECTION */}
+            {queueMode === 'independent' && (
                 <div className="space-y-4 pt-4 border-t border-gray-200">
                   <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
                     <Layers className="w-5 h-5 text-cyan-600" /> Level Queues (Waiting Lists)
@@ -2068,9 +2029,7 @@ export default function App() {
                   </div>
                 </div>
               )}
-            </div>
           </div>
-          
         )}
 
         {/* TAB 2: PLAYERS ROSTER */}
