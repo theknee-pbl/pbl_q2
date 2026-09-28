@@ -1851,7 +1851,7 @@ export default function App() {
                                   setEditingCourtId(court.id);
                                   setTempCourtName(court.name);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-cyan-600 transition cursor-pointer"
+                                className="opacity-100 group-hover:opacity-100 text-gray-400 hover:text-cyan-600 transition cursor-pointer"
                                 title="Edit Court Name"
                               >
                                 <Edit2 className="w-3 h-3" />
