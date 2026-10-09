@@ -128,7 +128,6 @@ const calculateAdvancedPlayerMetrics = (player, matchHistory = []) => {
   // Calculate average waiting time (in seconds)
   const waitDurationSec = player.checkedInAt ? Math.max(0, Math.floor((Date.now() - player.checkedInAt) / 1000)) : 0;
 
-  // Fixed syntax error by properly wrapping the fallback value
   const totalWaitSec = (player.totalWaitTimeSec || 0) + waitDurationSec;
   const avgWaitTimeSec = games > 0 ? Math.round(totalWaitSec / games) : 0;
 
@@ -173,6 +172,11 @@ export default function App() {
 
   const [totalLevelCount, setTotalLevelCount] = useState(() => {
     return parseInt(localStorage.getItem('pickleq_level_count') || '3', 10);
+  });
+
+  // --- NEW STATE FOR STARTING QUEUE / CHECK-IN LEVEL ---
+  const [defaultCheckInLevel, setDefaultCheckInLevel] = useState(() => {
+    return parseInt(localStorage.getItem('pickleq_default_checkin_level') || '1', 10);
   });
 
   const [sessionActive, setSessionActive] = useState(() => {
@@ -339,7 +343,6 @@ export default function App() {
     const targetPlayer = roster.find(p => p.name.toLowerCase().includes(query));
     if (!targetPlayer) return { player: null, matches: [] };
 
-    // Find all matches involving this targetPlayer
     const matches = matchHistory.filter(m => 
       m.teamAPlayerIds.includes(targetPlayer.id) || m.teamBPlayerIds.includes(targetPlayer.id)
     );
@@ -358,6 +361,7 @@ export default function App() {
   useEffect(() => localStorage.setItem('pickleq_queue_mode', queueMode), [queueMode]);
   useEffect(() => localStorage.setItem('pickleq_court_count', totalCourtCount.toString()), [totalCourtCount]);
   useEffect(() => localStorage.setItem('pickleq_level_count', totalLevelCount.toString()), [totalLevelCount]);
+  useEffect(() => localStorage.setItem('pickleq_default_checkin_level', defaultCheckInLevel.toString()), [defaultCheckInLevel]);
   useEffect(() => localStorage.setItem('pickleq_session_active', JSON.stringify(sessionActive)), [sessionActive]);
   useEffect(() => localStorage.setItem('pickleq_courts', JSON.stringify(courts)), [courts]);
   useEffect(() => localStorage.setItem('pickleq_roster', JSON.stringify(roster)), [roster]);
@@ -497,7 +501,7 @@ export default function App() {
       gamesPlayed: 0, 
       wins: 0,
       losses: 0,
-      level: 1, 
+      level: defaultCheckInLevel, 
       assignedCourt: 1,
       courtGames: {},
       timePlayedSec: 0,
@@ -531,7 +535,7 @@ export default function App() {
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
-        level: 1,
+        level: defaultCheckInLevel,
         assignedCourt: 1,
         courtGames: {},
         timePlayedSec: 0,
@@ -580,6 +584,8 @@ export default function App() {
           return {
             ...p,
             isCheckedIn: nextState,
+            // If checking in for the first time or restarting, apply defaultCheckInLevel if gamesPlayed === 0
+            level: nextState && p.gamesPlayed === 0 ? defaultCheckInLevel : p.level,
             checkedInAt: nextState ? Date.now() : null
           };
         }
@@ -757,12 +763,6 @@ export default function App() {
     }
 
     return { teamA, teamB, valid: true };
-  };
-
-  const getNextMatchFromQueueIndependent = (levelNum) => {
-    const levelQueue = getQueueForLevelIndependent(levelNum);
-    const result = getNextMatchFromQueue(levelQueue);
-    return { ...result, level: levelNum };
   };
 
   const getPrioritizedCandidateMatchesIndependent = () => {
@@ -1398,7 +1398,7 @@ export default function App() {
             </div>
 
             <p className="text-gray-500 text-xs mb-4 leading-relaxed">
-              Paste your list of players below (one player per line).
+              Paste your list of players below (one player per line). Imported players will automatically start at Level {defaultCheckInLevel}.
             </p>
 
             <textarea
@@ -1654,12 +1654,38 @@ export default function App() {
               <label className="text-xs font-semibold text-gray-900">Levels:</label>
               <select
                 value={totalLevelCount}
-                onChange={(e) => setTotalLevelCount(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  const newLevelCount = parseInt(e.target.value, 10);
+                  setTotalLevelCount(newLevelCount);
+                  if (defaultCheckInLevel > newLevelCount) {
+                    setDefaultCheckInLevel(newLevelCount);
+                  }
+                }}
                 className="bg-white border border-gray-200 text-cyan-700 font-bold rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <option key={num} value={num}>
                     {num} {num === 1 ? 'Level' : 'Levels'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* NEW SETTING FIELD: Starting Queue / Check-In Level */}
+          {queueMode === 'independent' && (
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <label className="text-xs font-semibold text-gray-900">Starting Level:</label>
+              <select
+                value={defaultCheckInLevel}
+                onChange={(e) => setDefaultCheckInLevel(parseInt(e.target.value, 10))}
+                className="bg-white border border-gray-200 text-amber-700 font-bold rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-amber-500 shadow-2xs"
+                title="Select what level starting queue new check-ins join"
+              >
+                {Array.from({ length: totalLevelCount }, (_, i) => i + 1).map((num) => (
+                  <option key={`start-lvl-${num}`} value={num}>
+                    Level {num}
                   </option>
                 ))}
               </select>
@@ -2066,6 +2092,9 @@ export default function App() {
                       Add Player
                     </button>
                   </div>
+                  <div className="text-[11px] text-gray-500 font-medium">
+                    New players will check into <strong className="text-amber-600">Level {defaultCheckInLevel}</strong> by default.
+                  </div>
                 </form>
               </div>
             </div>
@@ -2159,27 +2188,19 @@ export default function App() {
                       const partnerName = getPartnerName(player.partnerId);
                       const isOnCourt = activeCourtPlayerIds.has(player.id);
 
-                      // Helper to check out a player and replace them if they are currently playing on court
                       const handleCheckoutPlayer = (playerId) => {
-                        // 1. Identify which court the player is currently on, if any
                         const targetCourt = courts.find(c => [...c.teamA, ...c.teamB].some(p => p.id === playerId));
 
                         if (targetCourt) {
-                          // Player is currently playing on a court!
-                          const isTeamA = targetCourt.teamA.some(p => p.id === playerId);
-                          
-                          // Determine the queue source based on queue mode
                           let replacementCandidate = null;
                           if (queueMode === 'dependent') {
                             const courtQueue = getQueueForCourtDependent(targetCourt.id);
-                            // Find first checked-in player not on any court who has the same level or from queue
                             replacementCandidate = courtQueue.find(p => p.id !== playerId && !activeCourtPlayerIds.has(p.id) && p.level === player.level) || courtQueue.find(p => p.id !== playerId && !activeCourtPlayerIds.has(p.id));
                           } else {
                             const levelQueue = getQueueForLevelIndependent(targetCourt.level || player.level);
                             replacementCandidate = levelQueue.find(p => p.id !== playerId && !activeCourtPlayerIds.has(p.id));
                           }
 
-                          // Update courts to replace the player
                           setCourts(prevCourts => prevCourts.map(c => {
                             if (c.id === targetCourt.id) {
                               const newTeamA = c.teamA.map(p => p.id === playerId && replacementCandidate ? replacementCandidate : p);
@@ -2190,7 +2211,6 @@ export default function App() {
                           }));
                         }
 
-                        // 2. Proceed with normal check-out toggle
                         handleToggleCheckIn(playerId);
                       };
 
@@ -2630,7 +2650,6 @@ export default function App() {
               <div className="space-y-4">
                 {matchHistory.map((match) => {
                   const matchLevel = match.level ?? match.courtId ?? 1;
-                  const isWithinTwoMinutes = Date.now() - match.timestamp < 120000;
 
                   return (
                     <div 
@@ -2677,11 +2696,8 @@ export default function App() {
 
                         <button
                           onClick={() => handleSwapMatchWinner(match.id)}
-                          // disabled={!isWithinTwoMinutes}
-                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                           'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer shadow-xs'
-                          }`}
-                          title={"Swap Winner (Available for 2 mins)" }
+                          className="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer shadow-xs"
+                          title="Swap Winner"
                         >
                           <Repeat className="w-3.5 h-3.5" /> Swap Winner 
                         </button>
