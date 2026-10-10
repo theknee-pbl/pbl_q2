@@ -584,7 +584,6 @@ export default function App() {
           return {
             ...p,
             isCheckedIn: nextState,
-            // If checking in for the first time or restarting, apply defaultCheckInLevel if gamesPlayed === 0
             level: nextState && p.gamesPlayed === 0 ? defaultCheckInLevel : p.level,
             checkedInAt: nextState ? Date.now() : null
           };
@@ -1660,6 +1659,8 @@ export default function App() {
                   if (defaultCheckInLevel > newLevelCount) {
                     setDefaultCheckInLevel(newLevelCount);
                   }
+                  // Automatically transfer players queued or assigned in levels higher than the new total level count down to the new max level
+                  setRoster(prev => prev.map(p => p.level > newLevelCount ? { ...p, level: newLevelCount } : p));
                 }}
                 className="bg-white border border-gray-200 text-cyan-700 font-bold rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
               >
