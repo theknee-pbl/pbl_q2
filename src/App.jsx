@@ -37,7 +37,8 @@ import {
   Lock,
   User,
   Image as ImageIcon,
-  CircleDot
+  CircleDot,
+  Volume2
 } from 'lucide-react';
 
 // --- DYNAMIC COURT / LEVEL BADGE COLOR HELPER ---
@@ -236,6 +237,27 @@ export default function App() {
   });
 
   const fileInputRef = useRef(null);
+
+  // --- ANNOUNCE MATCH HELPER VIA WEB SPEECH API ---
+  const handleAnnounceMatch = (court) => {
+    if (!('speechSynthesis' in window)) {
+      alert("Text-to-speech is not supported in this browser.");
+      return;
+    }
+
+    // Cancel any ongoing speech utterances
+    window.speechSynthesis.cancel();
+
+    const teamANames = court.teamA.map(p => p.name).join(' and ');
+    const teamBNames = court.teamB.map(p => p.name).join(' and ');
+    
+    const announcementText = `Now playing on ${court.name}. Team A: ${teamANames}. Versus Team B: ${teamBNames}.`;
+
+    const utterance = new SpeechSynthesisUtterance(announcementText);
+    utterance.rate = 0.95; // Slightly slower for clarity in a gym/court setting
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
 
   // --- AUTH HANDLER ---
   const handleLogin = (e) => {
@@ -1659,7 +1681,6 @@ export default function App() {
                   if (defaultCheckInLevel > newLevelCount) {
                     setDefaultCheckInLevel(newLevelCount);
                   }
-                  // Automatically transfer players queued or assigned in levels higher than the new total level count down to the new max level
                   setRoster(prev => prev.map(p => p.level > newLevelCount ? { ...p, level: newLevelCount } : p));
                 }}
                 className="bg-white border border-gray-200 text-cyan-700 font-bold rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-cyan-500 shadow-2xs"
@@ -1673,7 +1694,6 @@ export default function App() {
             </div>
           )}
 
-          {/* NEW SETTING FIELD: Starting Queue / Check-In Level */}
           {queueMode === 'independent' && (
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -1887,15 +1907,28 @@ export default function App() {
                           )}
                         </div>
 
-                        {court.isLive ? (
-                          <span className="text-[10px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500" /> LIVE Match
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-black tracking-wider uppercase bg-gray-100 text-gray-500 border border-gray-200 px-2.5 py-1 rounded-full">
-                            Available
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {/* ANNOUNCE MATCH BUTTON */}
+                          {court.isLive && (
+                            <button
+                              onClick={() => handleAnnounceMatch(court)}
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                              title="Announce Match Players"
+                            >
+                              <Volume2 className="w-3.5 h-3.5" /> Announce
+                            </button>
+                          )}
+
+                          {court.isLive ? (
+                            <span className="text-[10px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1.5 animate-pulse">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" /> 
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black tracking-wider uppercase bg-gray-100 text-gray-500 border border-gray-200 px-2.5 py-1 rounded-full">
+                              Available
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {court.isLive ? (
@@ -2499,7 +2532,6 @@ export default function App() {
                                 <span className="text-purple-600 font-bold">{player.scheduleStrength || 0}%</span>
                               </div>
 
-                              {/* Average wait time */}
                               <div className="px-1">
                                 <span className="text-[10px] text-gray-400 block uppercase font-bold">Avg Wait</span>
                                 <span className="text-cyan-700 font-bold font-mono">
