@@ -251,7 +251,7 @@ export default function App() {
     const teamANames = court.teamA.map(p => p.name).join(' and ');
     const teamBNames = court.teamB.map(p => p.name).join(' and ');
     
-    const announcementText = `Now playing on ${court.name}. Team A: ${teamANames}. Versus Team B: ${teamBNames}.`;
+    const announcementText = `Attention players: ${teamANames}. Versus ${teamBNames} please proceed to ${court.name}. Thank you.`;
 
     const utterance = new SpeechSynthesisUtterance(announcementText);
     utterance.rate = 0.95; // Slightly slower for clarity in a gym/court setting
