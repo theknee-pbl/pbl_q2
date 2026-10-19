@@ -126,9 +126,7 @@ const calculateAdvancedPlayerMetrics = (player, matchHistory = []) => {
   const MIN_GAMES_THRESHOLD = 5;
   const isQualified = games >= MIN_GAMES_THRESHOLD;
 
-  // Calculate average waiting time (in seconds)
   const waitDurationSec = player.checkedInAt ? Math.max(0, Math.floor((Date.now() - player.checkedInAt) / 1000)) : 0;
-
   const totalWaitSec = (player.totalWaitTimeSec || 0) + waitDurationSec;
   const avgWaitTimeSec = games > 0 ? Math.round(totalWaitSec / games) : 0;
 
@@ -142,7 +140,6 @@ const calculateAdvancedPlayerMetrics = (player, matchHistory = []) => {
 };
 
 export default function App() {
-  // --- AUTHENTICATION STATE ---
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return JSON.parse(localStorage.getItem('pickleq_is_logged_in') || 'false');
   });
@@ -150,17 +147,13 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // --- STATE MANAGEMENT ---
   const [activeTab, setActiveTab] = useState('courts'); 
   const [now, setNow] = useState(Date.now()); 
   const [leaderboardFilter, setLeaderboardFilter] = useState('all');
   const [leaderboardSearch, setLeaderboardSearch] = useState('');
 
-  // --- NEW SEARCH STATES FOR ROSTER SECTIONS ---
   const [checkedInSearch, setCheckedInSearch] = useState('');
   const [poolSearch, setPoolSearch] = useState('');
-
-  // --- PLAYER SEARCH TAB STATE ---
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
 
   const [queueMode, setQueueMode] = useState(() => {
@@ -175,7 +168,6 @@ export default function App() {
     return parseInt(localStorage.getItem('pickleq_level_count') || '3', 10);
   });
 
-  // --- NEW STATE FOR STARTING QUEUE / CHECK-IN LEVEL ---
   const [defaultCheckInLevel, setDefaultCheckInLevel] = useState(() => {
     return parseInt(localStorage.getItem('pickleq_default_checkin_level') || '1', 10);
   });
@@ -205,7 +197,7 @@ export default function App() {
       name: `Court 0${i + 1}`,
       teamA: [],
       teamB: [],
-      firstServe: null, // 'A' or 'B'
+      firstServe: null,
       isLive: false,
       startTime: null,
       totalPlayTimeSec: 0
@@ -238,34 +230,27 @@ export default function App() {
 
   const fileInputRef = useRef(null);
 
-  // --- ANNOUNCE MATCH HELPER VIA WEB SPEECH API ---
   const handleAnnounceMatch = (court) => {
     if (!('speechSynthesis' in window)) {
       alert("Text-to-speech is not supported in this browser.");
       return;
     }
-
-    // Cancel any ongoing speech utterances
     window.speechSynthesis.cancel();
-
     const teamANames = court.teamA.map(p => p.name).join(' and ');
     const teamBNames = court.teamB.map(p => p.name).join(' and ');
-    const teamServe = court.firstServe === 'A' ?  teamANames : teamBNames;
+    const teamServe = court.firstServe === 'A' ? teamANames : teamBNames;
     const firstServeText = court.firstServe ? `First Serve: ${teamServe}` : '';
-    
     const announcementText = `Attention players: ${teamANames}, versus ${teamBNames}, please proceed to ${court.name}. ${firstServeText} Thank you.`;
 
     const utterance = new SpeechSynthesisUtterance(announcementText);
-    utterance.rate = 0.95; // Slightly slower for clarity in a gym/court setting
+    utterance.rate = 0.95;
     utterance.pitch = 1.0;
     window.speechSynthesis.speak(utterance);
   };
 
-  // --- AUTH HANDLER ---
   const handleLogin = (e) => {
     e.preventDefault();
     setLoginError('');
-
     if (loginUsername.trim() === 'admin' && loginPassword === 'pbl2026') {
       setIsLoggedIn(true);
       localStorage.setItem('pickleq_is_logged_in', 'true');
@@ -280,7 +265,6 @@ export default function App() {
     setLoginPassword('');
   };
 
-  // --- ADVANCED RANKING HOOK ---
   const rankedRoster = useMemo(() => {
     const getHeadToHeadWinner = (playerA, playerB) => {
       if (!playerA.headToHead || !playerB.headToHead) return 0;
@@ -360,7 +344,6 @@ export default function App() {
     });
   }, [rankedRoster, leaderboardFilter, leaderboardSearch]);
 
-  // --- PLAYER SEARCH RESULT MEMO ---
   const searchedPlayerMatches = useMemo(() => {
     if (!playerSearchQuery.trim()) return { player: null, matches: [] };
     const query = playerSearchQuery.trim().toLowerCase();
@@ -402,7 +385,6 @@ export default function App() {
   const handleCourtCountChange = (newCount) => {
     const count = Math.max(1, Math.min(10, parseInt(newCount, 10) || 1));
     setTotalCourtCount(count);
-    
     setCourts((prevCourts) => {
       if (count > prevCourts.length) {
         const added = Array.from({ length: count - prevCourts.length }, (_, i) => {
@@ -461,25 +443,6 @@ export default function App() {
     setRoster((prev) =>
       prev.map((p) => (p.id === playerId || p.id === partnerId ? { ...p, partnerId: null } : p))
     );
-  };
-
-  const handleReorderQueue = (playerId, direction, currentQueue) => {
-    const index = currentQueue.findIndex(p => p.id === playerId);
-    if (index === -1) return;
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= currentQueue.length) return;
-
-    const playerA = currentQueue[index];
-    const playerB = currentQueue[targetIndex];
-
-    const timeA = playerA.checkedInAt || Date.now();
-    const timeB = playerB.checkedInAt || Date.now();
-
-    setRoster(prev => prev.map(p => {
-      if (p.id === playerA.id) return { ...p, checkedInAt: timeB };
-      if (p.id === playerB.id) return { ...p, checkedInAt: timeA };
-      return p;
-    }));
   };
 
   const handleToggleSession = () => {
@@ -626,15 +589,23 @@ export default function App() {
     setRoster((prev) => prev.filter((p) => p.id !== playerId));
   };
 
+  // --- SNAKE DRAFT WITH PARTNER-AWARE ADJUSTMENT ---
   const initializeSnakeDraftAcrossCourts = () => {
     const availableQueuePlayers = roster
       .filter((p) => p.isCheckedIn && !activeCourtPlayerIds.has(p.id) && p.gamesPlayed === 0 && (!p.assignedCourt || p.assignedCourt > totalCourtCount))
-      .sort((a, b) => (a.checkedInAt || 0) - (b.checkedInAt || 0));
+      .sort((a, b) => {
+        const gamesA = a.gamesPlayed || 0;
+        const gamesB = b.gamesPlayed || 0;
+        if (gamesA === 0 && gamesB > 0) return -1;
+        if (gamesA > 0 && gamesB === 0) return 1;
+        return (a.checkedInAt || 0) - (b.checkedInAt || 0);
+      });
 
     if (availableQueuePlayers.length === 0) return;
 
     const courtAssignments = Array.from({ length: totalCourtCount }, () => []);
     let courtIndex = 0;
+    let snakeDirection = 1; // 1 for forward, -1 for backward (snake draft pattern)
     const processedIds = new Set();
 
     availableQueuePlayers.forEach((player) => {
@@ -645,41 +616,58 @@ export default function App() {
         partner = availableQueuePlayers.find((p) => p.id === player.partnerId && !processedIds.has(p.id));
       }
 
-      let iterations = 0;
-      while (courtAssignments[courtIndex].length >= 4 && iterations < totalCourtCount) {
-        courtIndex = (courtIndex + 1) % totalCourtCount;
-        iterations++;
+      // Find best court following snake order with capacity adjustment for partners
+      let targetCourtIdx = courtIndex;
+      let foundSlot = false;
+
+      for (let attempt = 0; attempt < totalCourtCount; attempt++) {
+        const currentCapacity = courtAssignments[targetCourtIdx].length;
+        const neededCapacity = partner ? 2 : 1;
+
+        if (currentCapacity + neededCapacity <= 4) {
+          foundSlot = true;
+          break;
+        }
+
+        // Adjust snake direction / move to next court in snake sequence
+        targetCourtIdx += snakeDirection;
+        if (targetCourtIdx >= totalCourtCount) {
+          targetCourtIdx = totalCourtCount - 1;
+          snakeDirection = -1;
+        } else if (targetCourtIdx < 0) {
+          targetCourtIdx = 0;
+          snakeDirection = 1;
+        }
       }
 
-      if (iterations >= totalCourtCount) return;
-
-      courtAssignments[courtIndex].push(player);
-      processedIds.add(player.id);
-
-      if (partner) {
-        if (courtAssignments[courtIndex].length < 4) {
-          courtAssignments[courtIndex].push(partner);
-          processedIds.add(partner.id);
-        } else {
-          let found = false;
-          for (let i = 0; i < totalCourtCount; i++) {
-            if (courtAssignments[i].length < 4) {
-              courtAssignments[i].push(partner);
-              processedIds.add(partner.id);
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            courtAssignments[courtIndex].pop();
-            processedIds.delete(player.id);
-            return;
+      if (!foundSlot) {
+        // Fallback to any court with space
+        for (let i = 0; i < totalCourtCount; i++) {
+          if (courtAssignments[i].length + (partner ? 2 : 1) <= 4) {
+            targetCourtIdx = i;
+            foundSlot = true;
+            break;
           }
         }
       }
 
-      if (courtAssignments[courtIndex].length >= 4) {
-        courtIndex = (courtIndex + 1) % totalCourtCount;
+      if (foundSlot) {
+        courtAssignments[targetCourtIdx].push(player);
+        processedIds.add(player.id);
+        if (partner) {
+          courtAssignments[targetCourtIdx].push(partner);
+          processedIds.add(partner.id);
+        }
+
+        // Advance snake pointer
+        courtIndex += snakeDirection;
+        if (courtIndex >= totalCourtCount) {
+          courtIndex = totalCourtCount - 1;
+          snakeDirection = -1;
+        } else if (courtIndex < 0) {
+          courtIndex = 0;
+          snakeDirection = 1;
+        }
       }
     });
 
@@ -709,6 +697,11 @@ export default function App() {
         return player.assignedCourt === courtId;
       })
       .sort((a, b) => {
+        const gamesA = a.gamesPlayed || 0;
+        const gamesB = b.gamesPlayed || 0;
+        if (gamesA === 0 && gamesB > 0) return -1;
+        if (gamesA > 0 && gamesB === 0) return 1;
+
         const timeA = a.checkedInAt || Date.now();
         const timeB = b.checkedInAt || Date.now();
         if (timeA !== timeB) return timeA - timeB;
@@ -720,6 +713,11 @@ export default function App() {
     return roster
       .filter((p) => p.isCheckedIn && !activeCourtPlayerIds.has(p.id) && p.level === levelNum)
       .sort((a, b) => {
+        const gamesA = a.gamesPlayed || 0;
+        const gamesB = b.gamesPlayed || 0;
+        if (gamesA === 0 && gamesB > 0) return -1;
+        if (gamesA > 0 && gamesB === 0) return 1;
+
         const timeA = a.checkedInAt || Date.now();
         const timeB = b.checkedInAt || Date.now();
         if (timeA !== timeB) return timeA - timeB;
@@ -735,57 +733,83 @@ export default function App() {
     return `${mins}m ${secs}s`;
   };
 
+  const countPastPartnerships = (playerAId, playerBId, history) => {
+    let count = 0;
+    history.forEach(match => {
+      const inTeamA = match.teamAPlayerIds.includes(playerAId) && match.teamAPlayerIds.includes(playerBId);
+      const inTeamB = match.teamBPlayerIds.includes(playerAId) && match.teamBPlayerIds.includes(playerBId);
+      if (inTeamA || inTeamB) count++;
+    });
+    return count;
+  };
+
+  // --- UPDATED MATCH PAIRING ALGORITHM (No Repeat Partners + Fair Partnership) ---
   const getNextMatchFromQueue = (queueSource) => {
     if (queueSource.length < 4) return { teamA: [], teamB: [], valid: false };
 
-    const selected = [];
-    const usedIds = new Set();
+    const candidatePool = queueSource.slice(0, Math.min(8, queueSource.length));
+    let bestPairing = null;
+    let minScore = Infinity;
 
-    for (const p of queueSource) {
-      if (usedIds.has(p.id)) continue;
-      
-      if (p.partnerId) {
-        const partner = queueSource.find((item) => item.id === p.partnerId && !usedIds.has(item.id));
-        if (partner && selected.length <= 2) {
-          selected.push(p, partner);
-          usedIds.add(p.id);
-          usedIds.add(partner.id);
-        } else if (!partner) {
-          selected.push(p);
-          usedIds.add(p.id);
+    for (let i = 0; i < candidatePool.length; i++) {
+      for (let j = i + 1; j < candidatePool.length; j++) {
+        for (let k = j + 1; k < candidatePool.length; k++) {
+          for (let l = k + 1; l < candidatePool.length; l++) {
+            const p1 = candidatePool[i];
+            const p2 = candidatePool[j];
+            const p3 = candidatePool[k];
+            const p4 = candidatePool[l];
+
+            const group = [p1, p2, p3, p4];
+
+            const configs = [
+              { teamA: [p1, p4], teamB: [p2, p3] },
+              { teamA: [p1, p3], teamB: [p2, p4] },
+              { teamA: [p1, p2], teamB: [p3, p4] }
+            ];
+
+            for (const config of configs) {
+              let validConfig = true;
+              for (const member of group) {
+                if (member.partnerId) {
+                  const isInTeamA = config.teamA.some(p => p.id === member.id);
+                  const partnerInSameTeam = isInTeamA 
+                    ? config.teamA.some(p => p.id === member.partnerId)
+                    : config.teamB.some(p => p.id === member.partnerId);
+                  if (!partnerInSameTeam) validConfig = false;
+                }
+              }
+              if (!validConfig && group.some(p => p.partnerId)) continue;
+
+              // 1st Priority: Minimize past repeated partnerships
+              const repeatPartnerships = 
+                countPastPartnerships(config.teamA[0].id, config.teamA[1].id, matchHistory) +
+                countPastPartnerships(config.teamB[0].id, config.teamB[1].id, matchHistory);
+
+              // 2nd Priority: Fair partnership / skill balance (minimize team skill difference)
+              const getTeamSkill = (team) => (team[0].wins || 0) + (team[1].wins || 0);
+              const skillDifference = Math.abs(getTeamSkill(config.teamA) - getTeamSkill(config.teamB));
+
+              const waitPenalty = i + j + k + l;
+              const totalScore = (repeatPartnerships * 1000) + (skillDifference * 50) + waitPenalty;
+
+              if (totalScore < minScore) {
+                minScore = totalScore;
+                bestPairing = { teamA: config.teamA, teamB: config.teamB, valid: true };
+              }
+            }
+          }
         }
-      } else {
-        selected.push(p);
-        usedIds.add(p.id);
       }
-      if (selected.length >= 4) break;
     }
 
-    if (selected.length < 4) return { teamA: [], teamB: [], valid: false };
+    if (bestPairing && bestPairing.valid) return bestPairing;
 
-    let teamA = [];
-    let teamB = [];
-
-    const p0 = selected[0];
-    const p1 = selected[1];
-    const p2 = selected[2];
-    const p3 = selected[3];
-
-    const isP0P1Partner = p0.partnerId === p1.id;
-    const isP2P3Partner = p2.partnerId === p3.id;
-
-    if (isP0P1Partner) {
-      teamA = [p0, p1];
-      teamB = [p2, p3];
-    } else if (isP2P3Partner) {
-      teamA = [p2, p3];
-      teamB = [p0, p1];
-    } else {
-      teamA = [p0, p3];
-      teamB = [p1, p2];
-    }
-
-    return { teamA, teamB, valid: true };
+    return {
+      teamA: [queueSource[0], queueSource[3]],
+      teamB: [queueSource[1], queueSource[2]],
+      valid: true
+    };
   };
 
   const getPrioritizedCandidateMatchesIndependent = () => {
@@ -1340,7 +1364,6 @@ export default function App() {
               <Play className="w-4 h-4 fill-current" /> Sign In to System
             </button>
           </form>
-
         </div>
       </div>
     );
@@ -1704,7 +1727,6 @@ export default function App() {
                 value={defaultCheckInLevel}
                 onChange={(e) => setDefaultCheckInLevel(parseInt(e.target.value, 10))}
                 className="bg-white border border-gray-200 text-amber-700 font-bold rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-amber-500 shadow-2xs"
-                title="Select what level starting queue new check-ins join"
               >
                 {Array.from({ length: totalLevelCount }, (_, i) => i + 1).map((num) => (
                   <option key={`start-lvl-${num}`} value={num}>
@@ -1817,7 +1839,6 @@ export default function App() {
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {/* Team A Card */}
                                 <div className="bg-gray-50 border border-cyan-200 p-3 rounded-xl flex flex-col justify-between">
                                   <span className="text-[10px] font-black tracking-wider text-cyan-700 uppercase mb-2 flex items-center gap-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" /> Team A
@@ -1832,7 +1853,6 @@ export default function App() {
                                   </div>
                                 </div>
 
-                                {/* Team B Card */}
                                 <div className="bg-gray-50 border border-rose-200 p-3 rounded-xl flex flex-col justify-between">
                                   <span className="text-[10px] font-black tracking-wider text-rose-700 uppercase mb-2 flex items-center gap-1">
                                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Team B
@@ -1910,7 +1930,6 @@ export default function App() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {/* ANNOUNCE MATCH BUTTON */}
                           {court.isLive && (
                             <button
                               onClick={() => handleAnnounceMatch(court)}
@@ -2060,22 +2079,6 @@ export default function App() {
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
-                                      <div className="flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded px-1">
-                                        <button 
-                                          onClick={() => handleReorderQueue(player.id, 'up', levelQueue)} 
-                                          disabled={idx === 0} 
-                                          className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1 text-[11px]"
-                                        >
-                                          ▲
-                                        </button>
-                                        <button 
-                                          onClick={() => handleReorderQueue(player.id, 'down', levelQueue)} 
-                                          disabled={idx === levelQueue.length - 1} 
-                                          className="text-gray-400 hover:text-cyan-600 disabled:opacity-20 cursor-pointer font-bold px-1 text-[11px]"
-                                        >
-                                          ▼
-                                        </button>
-                                      </div>
                                       <span className="text-[11px] font-mono text-cyan-700 font-semibold bg-cyan-50 border border-cyan-200 px-2 py-0.5 rounded flex items-center gap-1">
                                         <Trophy className="w-3 h-3 text-cyan-500 inline" /> {player.gamesPlayed}G
                                       </span>
@@ -2583,7 +2586,6 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Player Info Card */}
                     <div className="bg-white border border-cyan-500/30 rounded-2xl p-5 shadow-2xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -2608,7 +2610,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Matches List */}
                     <div className="space-y-3">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">Match History & Partners for {searchedPlayerMatches.player.name}</h4>
                       
