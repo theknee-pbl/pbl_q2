@@ -1,3 +1,4 @@
+name=App.jsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Trophy, 
@@ -566,6 +567,7 @@ export default function App() {
       const nextState = !target.isCheckedIn;
       const partnerId = target.partnerId;
 
+      // Late check-ins receive Date.now() timestamp to wait behind earlier check-ins
       return prev.map((p) => {
         if (p.id === playerId || (partnerId && p.id === partnerId)) {
           return {
@@ -605,7 +607,7 @@ export default function App() {
 
     const courtAssignments = Array.from({ length: totalCourtCount }, () => []);
     let courtIndex = 0;
-    let snakeDirection = 1; // 1 for forward, -1 for backward (snake draft pattern)
+    let snakeDirection = 1; 
     const processedIds = new Set();
 
     availableQueuePlayers.forEach((player) => {
@@ -616,7 +618,6 @@ export default function App() {
         partner = availableQueuePlayers.find((p) => p.id === player.partnerId && !processedIds.has(p.id));
       }
 
-      // Find best court following snake order with capacity adjustment for partners
       let targetCourtIdx = courtIndex;
       let foundSlot = false;
 
@@ -629,7 +630,6 @@ export default function App() {
           break;
         }
 
-        // Adjust snake direction / move to next court in snake sequence
         targetCourtIdx += snakeDirection;
         if (targetCourtIdx >= totalCourtCount) {
           targetCourtIdx = totalCourtCount - 1;
@@ -641,7 +641,6 @@ export default function App() {
       }
 
       if (!foundSlot) {
-        // Fallback to any court with space
         for (let i = 0; i < totalCourtCount; i++) {
           if (courtAssignments[i].length + (partner ? 2 : 1) <= 4) {
             targetCourtIdx = i;
@@ -659,7 +658,6 @@ export default function App() {
           processedIds.add(partner.id);
         }
 
-        // Advance snake pointer
         courtIndex += snakeDirection;
         if (courtIndex >= totalCourtCount) {
           courtIndex = totalCourtCount - 1;
@@ -743,10 +741,11 @@ export default function App() {
     return count;
   };
 
-  // --- UPDATED MATCH PAIRING ALGORITHM (No Repeat Partners + Fair Partnership) ---
+  // --- MATCH PAIRING ALGORITHM (A & C vs B & D formation) ---
   const getNextMatchFromQueue = (queueSource) => {
     if (queueSource.length < 4) return { teamA: [], teamB: [], valid: false };
 
+    // Select top candidates sorted strictly by waiting time
     const candidatePool = queueSource.slice(0, Math.min(8, queueSource.length));
     let bestPairing = null;
     let minScore = Infinity;
@@ -755,16 +754,18 @@ export default function App() {
       for (let j = i + 1; j < candidatePool.length; j++) {
         for (let k = j + 1; k < candidatePool.length; k++) {
           for (let l = k + 1; l < candidatePool.length; l++) {
-            const p1 = candidatePool[i];
-            const p2 = candidatePool[j];
-            const p3 = candidatePool[k];
-            const p4 = candidatePool[l];
+            // Ordered by longest waiting time: A=p1, B=p2, C=p3, D=p4
+            const p1 = candidatePool[i]; // A
+            const p2 = candidatePool[j]; // B
+            const p3 = candidatePool[k]; // C
+            const p4 = candidatePool[l]; // D
 
             const group = [p1, p2, p3, p4];
 
+            // Strict A & C vs B & D default formation
             const configs = [
-              { teamA: [p1, p4], teamB: [p2, p3] },
-              { teamA: [p1, p3], teamB: [p2, p4] },
+              { teamA: [p1, p3], teamB: [p2, p4] }, // Default: A & C vs B & D
+              { teamA: [p1, p4], teamB: [p2, p3] }, // Alternative fallback if partners require it
               { teamA: [p1, p2], teamB: [p3, p4] }
             ];
 
@@ -781,17 +782,13 @@ export default function App() {
               }
               if (!validConfig && group.some(p => p.partnerId)) continue;
 
-              // 1st Priority: Minimize past repeated partnerships
               const repeatPartnerships = 
                 countPastPartnerships(config.teamA[0].id, config.teamA[1].id, matchHistory) +
                 countPastPartnerships(config.teamB[0].id, config.teamB[1].id, matchHistory);
 
-              // 2nd Priority: Fair partnership / skill balance (minimize team skill difference)
-              const getTeamSkill = (team) => (team[0].wins || 0) + (team[1].wins || 0);
-              const skillDifference = Math.abs(getTeamSkill(config.teamA) - getTeamSkill(config.teamB));
-
               const waitPenalty = i + j + k + l;
-              const totalScore = (repeatPartnerships * 1000) + (skillDifference * 50) + waitPenalty;
+              const isDefaultACvsBD = (config.teamA[0].id === p1.id && config.teamA[1].id === p3.id) ? 0 : 500;
+              const totalScore = (repeatPartnerships * 10000) + isDefaultACvsBD + waitPenalty;
 
               if (totalScore < minScore) {
                 minScore = totalScore;
@@ -805,9 +802,10 @@ export default function App() {
 
     if (bestPairing && bestPairing.valid) return bestPairing;
 
+    // Fallback directly to A & C vs B & D
     return {
-      teamA: [queueSource[0], queueSource[3]],
-      teamB: [queueSource[1], queueSource[2]],
+      teamA: [queueSource[0], queueSource[2]], // A & C
+      teamB: [queueSource[1], queueSource[3]], // B & D
       valid: true
     };
   };
@@ -836,11 +834,13 @@ export default function App() {
       }
     }
 
+    // Sort candidate matches: longest waiting match plays first.
+    // If check-in time is equal between different levels, prioritize higher level first.
     candidateMatches.sort((a, b) => {
       if (a.minCheckedInAt !== b.minCheckedInAt) {
         return a.minCheckedInAt - b.minCheckedInAt;
       }
-      return b.level - a.level;
+      return b.level - a.level; // Higher level takes priority when waiting time is identical
     });
 
     return candidateMatches;
