@@ -741,73 +741,65 @@ export default function App() {
     return count;
   };
 
-  // --- MATCH PAIRING ALGORITHM (A & C vs B & D formation) ---
+  // --- MATCH PAIRING ALGORITHM (Prioritize first four, avoid repeat partners) ---
   const getNextMatchFromQueue = (queueSource) => {
     if (queueSource.length < 4) return { teamA: [], teamB: [], valid: false };
 
-    // Select top candidates sorted strictly by waiting time
-    const candidatePool = queueSource.slice(0, Math.min(8, queueSource.length));
-    let bestPairing = null;
-    let minScore = Infinity;
+    // 1. Strictly prioritize the first four players in the queue
+    const topFour = queueSource.slice(0, 4);
 
-    for (let i = 0; i < candidatePool.length; i++) {
-      for (let j = i + 1; j < candidatePool.length; j++) {
-        for (let k = j + 1; k < candidatePool.length; k++) {
-          for (let l = k + 1; l < candidatePool.length; l++) {
-            // Ordered by longest waiting time: A=p1, B=p2, C=p3, D=p4
-            const p1 = candidatePool[i]; // A
-            const p2 = candidatePool[j]; // B
-            const p3 = candidatePool[k]; // C
-            const p4 = candidatePool[l]; // D
+    // Default configuration: A & C vs B & D formation using the top four
+    const defaultConfig = {
+      teamA: [topFour[0], topFour[2]],
+      teamB: [topFour[1], topFour[3]],
+      valid: true
+    };
 
-            const group = [p1, p2, p3, p4];
+    // Check if the default formation has repeating partners
+    const defaultRepeatPartnerships = 
+      countPastPartnerships(defaultConfig.teamA[0].id, defaultConfig.teamA[1].id, matchHistory) +
+      countPastPartnerships(defaultConfig.teamB[0].id, defaultConfig.teamB[1].id, matchHistory);
 
-            // Strict A & C vs B & D default formation
-            const configs = [
-              { teamA: [p1, p3], teamB: [p2, p4] }, // Default: A & C vs B & D
-              { teamA: [p1, p4], teamB: [p2, p3] }, // Alternative fallback if partners require it
-              { teamA: [p1, p2], teamB: [p3, p4] }
-            ];
+    if (defaultRepeatPartnerships === 0) {
+      return defaultConfig; // Perfect match with no repeated partners among the first four
+    }
 
-            for (const config of configs) {
-              let validConfig = true;
-              for (const member of group) {
-                if (member.partnerId) {
-                  const isInTeamA = config.teamA.some(p => p.id === member.id);
-                  const partnerInSameTeam = isInTeamA 
-                    ? config.teamA.some(p => p.id === member.partnerId)
-                    : config.teamB.some(p => p.id === member.partnerId);
-                  if (!partnerInSameTeam) validConfig = false;
-                }
-              }
-              if (!validConfig && group.some(p => p.partnerId)) continue;
+    // If there's a repeating partner in the first four, check alternative pairings of these same 4 players
+    const alternativeConfigs = [
+      { teamA: [topFour[0], topFour[3]], teamB: [topFour[1], topFour[2]] },
+      { teamA: [topFour[0], topFour[1]], teamB: [topFour[2], topFour[3]] }
+    ];
 
-              const repeatPartnerships = 
-                countPastPartnerships(config.teamA[0].id, config.teamA[1].id, matchHistory) +
-                countPastPartnerships(config.teamB[0].id, config.teamB[1].id, matchHistory);
+    let bestConfig = defaultConfig;
+    let minRepeats = defaultRepeatPartnerships;
 
-              const waitPenalty = i + j + k + l;
-              const isDefaultACvsBD = (config.teamA[0].id === p1.id && config.teamA[1].id === p3.id) ? 0 : 500;
-              const totalScore = (repeatPartnerships * 10000) + isDefaultACvsBD + waitPenalty;
-
-              if (totalScore < minScore) {
-                minScore = totalScore;
-                bestPairing = { teamA: config.teamA, teamB: config.teamB, valid: true };
-              }
-            }
-          }
+    for (const config of alternativeConfigs) {
+      // Validate fixed partners rule if applicable
+      let validConfig = true;
+      const group = topFour;
+      for (const member of group) {
+        if (member.partnerId) {
+          const isInTeamA = config.teamA.some(p => p.id === member.id);
+          const partnerInSameTeam = isInTeamA 
+            ? config.teamA.some(p => p.id === member.partnerId)
+            : config.teamB.some(p => p.id === member.partnerId);
+          if (!partnerInSameTeam) validConfig = false;
         }
+      }
+      if (!validConfig && group.some(p => p.partnerId)) continue;
+
+      const repeatCount = 
+        countPastPartnerships(config.teamA[0].id, config.teamA[1].id, matchHistory) +
+        countPastPartnerships(config.teamB[0].id, config.teamB[1].id, matchHistory);
+
+      if (repeatCount < minRepeats) {
+        minRepeats = repeatCount;
+        bestConfig = { teamA: config.teamA, teamB: config.teamB, valid: true };
       }
     }
 
-    if (bestPairing && bestPairing.valid) return bestPairing;
-
-    // Fallback directly to A & C vs B & D
-    return {
-      teamA: [queueSource[0], queueSource[2]], // A & C
-      teamB: [queueSource[1], queueSource[3]], // B & D
-      valid: true
-    };
+    // 3. If repeating partners are unavoidable, it is okay to repeat as long as the first four players are prioritized
+    return bestConfig;
   };
 
   const getPrioritizedCandidateMatchesIndependent = () => {
