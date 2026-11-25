@@ -1,4 +1,3 @@
-name=App.jsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Trophy, 
@@ -39,7 +38,10 @@ import {
   User,
   Image as ImageIcon,
   CircleDot,
-  Volume2
+  Volume2,
+  QrCode,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 // --- DYNAMIC COURT / LEVEL BADGE COLOR HELPER ---
@@ -140,6 +142,12 @@ const calculateAdvancedPlayerMetrics = (player, matchHistory = []) => {
   };
 };
 
+// ---- Google Sheets sync: paste your Apps Script Web App URL here ----
+const SHEET_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SHEET_URL) || 'PASTE_YOUR_WEB_APP_URL_HERE';
+const SHEET_ENABLED = SHEET_URL.startsWith('https://');
+
+const PUBLIC_VIEW_URL = () => `${window.location.origin}${window.location.pathname}?view=public&k=PBL2026`;
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return JSON.parse(localStorage.getItem('pickleq_is_logged_in') || 'false');
@@ -178,6 +186,21 @@ export default function App() {
   });
 
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [eventHistory, setEventHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pickleq_event_history') || '[]'); } catch (e) { return []; }
+  });
+  const [sessionStartedAt, setSessionStartedAt] = useState(() => {
+    const v = localStorage.getItem('pickleq_session_started_at');
+    return v ? parseInt(v, 10) : null;
+  });
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [eventDetailTab, setEventDetailTab] = useState('leaderboard');
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const publicView = useMemo(() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get('view') === 'public' && p.get('k') === 'PBL2026';
+  }, []);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importTextContent, setImportTextContent] = useState('');
   const [isSavingImage, setIsSavingImage] = useState(false);
@@ -327,6 +350,7 @@ export default function App() {
     });
   }, [roster, queueMode, totalCourtCount]);
 
+  const leaderboardTop = useMemo(() => rankedRoster.filter(p => p.gamesPlayed > 0).slice(0, 10), [rankedRoster]);
   const qualifiedRoster = useMemo(() => rankedRoster.filter(p => p.isQualified), [rankedRoster]);
   const provisionalRoster = useMemo(() => rankedRoster.filter(p => !p.isQualified), [rankedRoster]);
 
@@ -375,6 +399,53 @@ export default function App() {
   useEffect(() => localStorage.setItem('pickleq_roster', JSON.stringify(roster)), [roster]);
   useEffect(() => localStorage.setItem('pickleq_matches', totalMatches.toString()), [totalMatches]);
   useEffect(() => localStorage.setItem('pickleq_match_history', JSON.stringify(matchHistory)), [matchHistory]);
+  useEffect(() => localStorage.setItem('pickleq_event_history', JSON.stringify(eventHistory)), [eventHistory]);
+  useEffect(() => {
+    if (sessionStartedAt) localStorage.setItem('pickleq_session_started_at', String(sessionStartedAt));
+    else localStorage.removeItem('pickleq_session_started_at');
+  }, [sessionStartedAt]);
+
+  // ---- Google Sheets sync ----
+  const [syncStatus, setSyncStatus] = useState(SHEET_ENABLED ? 'loading' : 'off');
+  const syncReady = useRef(false);
+
+  useEffect(() => {
+    if (!SHEET_ENABLED) return;
+    fetch(SHEET_URL)
+      .then(r => r.json())
+      .then(d => {
+        const s = d && d.state;
+        if (s && s.roster) {
+          if (s.queueMode) setQueueMode(s.queueMode);
+          if (s.totalCourtCount) setTotalCourtCount(s.totalCourtCount);
+          if (s.totalLevelCount) setTotalLevelCount(s.totalLevelCount);
+          if (s.defaultCheckInLevel) setDefaultCheckInLevel(s.defaultCheckInLevel);
+          setSessionActive(!!s.sessionActive);
+          if (s.courts) setCourts(s.courts);
+          setRoster(s.roster);
+          setTotalMatches(s.totalMatches || 0);
+          setMatchHistory(s.matchHistory || []);
+          setEventHistory(s.eventHistory || []);
+          setSessionStartedAt(s.sessionStartedAt || null);
+        }
+        syncReady.current = true;
+        setSyncStatus('saved');
+      })
+      .catch(() => { syncReady.current = false; setSyncStatus('error'); });
+  }, []);
+
+  useEffect(() => {
+    if (!SHEET_ENABLED || !syncReady.current) return;
+    setSyncStatus('saving');
+    const timer = setTimeout(() => {
+      const state = { queueMode, totalCourtCount, totalLevelCount, defaultCheckInLevel, sessionActive, courts, roster, totalMatches, matchHistory, eventHistory, sessionStartedAt };
+      fetch(SHEET_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ state }) })
+        .then(r => r.json())
+        .then(d => setSyncStatus(d && d.ok ? 'saved' : 'error'))
+        .catch(() => setSyncStatus('error'));
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [queueMode, totalCourtCount, totalLevelCount, defaultCheckInLevel, sessionActive, courts, roster, totalMatches, matchHistory, eventHistory, sessionStartedAt]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -449,12 +520,33 @@ export default function App() {
   const handleToggleSession = () => {
     if (!sessionActive) {
       setSessionActive(true);
+      setSessionStartedAt(Date.now());
       setShowSummaryModal(false);
       if (queueMode === 'dependent') {
         setTimeout(() => initializeSnakeDraftAcrossCourts(), 50);
       }
     } else {
       if (window.confirm("End session and generate player stats summary?")) {
+        const endedAt = Date.now();
+        const snapshot = {
+          id: `evt-${endedAt}`,
+          name: `Event ${new Date(endedAt).toLocaleDateString()}`,
+          startedAt: sessionStartedAt || endedAt,
+          endedAt,
+          queueMode,
+          totalMatches: matchHistory.length,
+          leaderboard: rankedRoster
+            .filter(p => p.gamesPlayed > 0)
+            .map(p => ({
+              rank: p.calculatedRank, name: p.name, level: p.level, assignedCourt: p.assignedCourt || null,
+              gamesPlayed: p.gamesPlayed, wins: p.wins, losses: p.losses,
+              winRate: p.rawWinRate || 0, finalScore: p.finalScore || 0,
+              isQualified: !!p.isQualified, timePlayedSec: p.timePlayedSec || 0
+            })),
+          matchHistory: JSON.parse(JSON.stringify(matchHistory))
+        };
+        setEventHistory(prev => [snapshot, ...prev]);
+        setSessionStartedAt(null);
         setSessionActive(false);
         setShowSummaryModal(true);
       }
@@ -1175,6 +1267,8 @@ export default function App() {
   const handleResetSession = () => {
     if (window.confirm("Reset all session data, courts, and queues?")) {
       localStorage.clear();
+      localStorage.setItem('pickleq_event_history', JSON.stringify(eventHistory));
+      setSessionStartedAt(null);
       setIsLoggedIn(false);
       setSessionActive(false);
       setShowSummaryModal(false);
@@ -1193,6 +1287,18 @@ export default function App() {
       setTotalMatches(0);
     }
   };
+
+  useEffect(() => {
+    if (!publicView) return;
+    const i = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(i);
+  }, [publicView]);
+
+  useEffect(() => {
+    if (!publicView) return;
+    document.body.classList.toggle('bg-black', isFullscreen);
+    return () => document.body.classList.remove('bg-black');
+  }, [publicView, isFullscreen]);
 
   const formatDuration = (seconds = 0) => {
     const mins = Math.floor(seconds / 60);
@@ -1297,6 +1403,141 @@ export default function App() {
       );
     }
   };
+
+
+  if (publicView) {
+    const liveCourts = courts.filter(c => c.isLive);
+    return (
+      <div className="min-h-screen bg-gray-50 font-sans antialiased">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-4 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <PBLLogo className="w-12 h-12" />
+              <div>
+                <h1 className="text-lg md:text-xl font-extrabold tracking-wider text-gray-900 uppercase">Live Match View</h1>
+                <p className="text-gray-500 text-[11px]">
+                  Auto-refreshing • {sessionActive ? 'Session in progress' : 'No active session'} • {totalMatches} matches played
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsFullscreen(f => !f)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer flex items-center gap-1.5"
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            </button>
+          </header>
+
+          <section className={`grid gap-4 ${liveCourts.length > 1 ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+            {liveCourts.length === 0 ? (
+              <div className="bg-white border border-gray-200 rounded-3xl p-10 text-center">
+                <Clock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <div className="text-sm font-bold text-gray-700">No live matches right now</div>
+                <div className="text-xs text-gray-400 mt-1">Matches appear here the moment they start on a court.</div>
+              </div>
+            ) : liveCourts.map(court => (
+              <div key={court.id} className="bg-white border-2 border-cyan-200 rounded-3xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                    <span className="font-extrabold text-sm uppercase tracking-wide text-gray-900">{court.name}</span>
+                  </div>
+                  <span className="text-xs font-mono text-gray-500">
+                    {court.startTime ? formatDuration(Math.floor((now - court.startTime) / 1000)) : ''}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {[['A', court.teamA, 'text-cyan-800', 'bg-cyan-50 border-cyan-200'], ['B', court.teamB, 'text-rose-800', 'bg-rose-50 border-rose-200']].map(([key, team, txt, bg]) => (
+                    <div key={key} className={`border rounded-2xl p-4 ${bg}`}>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">
+                        Team {key}{court.firstServe === key ? ' • First Serve' : ''}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {team.map(p => (
+                          <div key={p.id} className={`text-lg md:text-xl font-extrabold ${txt}`}>{p.name}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+
+          <section className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">Live Leaderboard</h2>
+            </div>
+            {leaderboardTop.length === 0 ? (
+              <div className="text-center text-gray-400 italic text-sm py-6">No player results yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-100 text-[11px] uppercase text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3">Rank</th>
+                      <th className="px-4 py-3">Player</th>
+                      <th className="px-4 py-3">Lvl</th>
+                      <th className="px-4 py-3">GP</th>
+                      <th className="px-4 py-3">W</th>
+                      <th className="px-4 py-3">L</th>
+                      <th className="px-4 py-3">Win %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboardTop.map(p => (
+                      <tr key={p.id} className={`border-t border-gray-100 ${p.calculatedRank <= 3 ? 'bg-amber-50/40' : ''}`}>
+                        <td className="px-4 py-3 font-black text-cyan-700">
+                          {p.calculatedRank === 1 ? '🥇' : p.calculatedRank === 2 ? '🥈' : p.calculatedRank === 3 ? '🥉' : `#${p.calculatedRank}`}
+                        </td>
+                        <td className="px-4 py-3 font-extrabold text-gray-900">{p.name}</td>
+                        <td className="px-4 py-3 font-bold text-gray-600">{p.level}</td>
+                        <td className="px-4 py-3">{p.gamesPlayed}</td>
+                        <td className="px-4 py-3">{p.wins}</td>
+                        <td className="px-4 py-3">{p.losses}</td>
+                        <td className="px-4 py-3 font-bold text-amber-600">{Math.round((p.rawWinRate || 0) * 100)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <History className="w-5 h-5 text-cyan-600" />
+              <h2 className="text-base font-bold text-gray-900 uppercase tracking-wide">Match History</h2>
+            </div>
+            {matchHistory.length === 0 ? (
+              <div className="text-center text-gray-400 italic text-sm py-6">No matches completed yet.</div>
+            ) : (
+              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                {[...matchHistory].reverse().map(match => (
+                  <div key={match.id} className="border border-gray-200 rounded-2xl p-4">
+                    <div className="flex items-center gap-2.5 flex-wrap text-xs mb-2">
+                      <span className="font-black bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-100">Match #{match.matchNumber}</span>
+                      <span className="font-bold text-gray-700">{match.courtName}</span>
+                      <span className="text-gray-400 font-mono">• {formatDuration(match.durationSec)}</span>
+                      <span className="font-bold text-gray-600">Level {match.level ?? match.courtId ?? 1}</span>
+                    </div>
+                    <div className="flex items-center gap-6 text-xs flex-wrap">
+                      <span className="font-bold text-cyan-900">Team A: <span className="font-normal text-gray-700">{match.teamA.join(' & ')}</span> {match.winningTeam === 'A' && '👑'}</span>
+                      <span className="font-bold text-rose-900">Team B: <span className="font-normal text-gray-700">{match.teamB.join(' & ')}</span> {match.winningTeam === 'B' && '👑'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <p className="text-center text-[10px] text-gray-400 pb-4">Read-only view • updates automatically</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -1409,6 +1650,12 @@ export default function App() {
             <LogOut className="w-4 h-4 md:w-5 md:h-5" />
           </button>
 
+          <button
+            onClick={() => setShowQrModal(true)}
+            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer flex items-center gap-2"
+          >
+            <QrCode className="w-4 h-4" /> Live View QR
+          </button>
           <button
             onClick={handleResetSession}
             className="p-2 md:p-2.5 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 border border-gray-200 hover:border-rose-200 rounded-xl transition cursor-pointer"
@@ -1772,6 +2019,14 @@ export default function App() {
           }`}
         >
           <History className="w-4 h-4" /> Match Logs
+        </button>
+        <button
+          onClick={() => setActiveTab('eventHistory')}
+          className={`px-4 md:px-5 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shrink-0 ${
+            activeTab === 'eventHistory' ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-900/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          }`}
+        >
+          <Trophy className="w-4 h-4" /> Event History
         </button>
       </div>
 
@@ -2738,6 +2993,169 @@ export default function App() {
           </section>
         )}
 
+        {activeTab === 'eventHistory' && (() => {
+          const selectedEvent = eventHistory.find(ev => ev.id === selectedEventId);
+          return (
+            <section className="bg-gray-50 border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in duration-200">
+              <div className="pb-4 border-b border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-cyan-600" /> Event History
+                </h2>
+                <p className="text-gray-500 text-xs mt-1">
+                  A snapshot of the leaderboard and match history is saved each time you end a session.
+                </p>
+              </div>
+
+              {!selectedEvent ? (
+                eventHistory.length === 0 ? (
+                  <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic">
+                    No saved events yet. End a session to save one.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {eventHistory.map(ev => (
+                      <div key={ev.id} className="bg-white border border-gray-200 rounded-2xl p-5 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                        <div className="min-w-0">
+                          <div className="font-bold text-gray-900">{ev.name}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Ended {new Date(ev.endedAt).toLocaleString()} • {ev.totalMatches} matches • {ev.leaderboard.length} players
+                            {ev.leaderboard[0] ? <> • 🏆 {ev.leaderboard[0].name}</> : null}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => { setSelectedEventId(ev.id); setEventDetailTab('leaderboard'); }}
+                            className="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Delete "${ev.name}" permanently?`)) {
+                                setEventHistory(prev => prev.filter(e => e.id !== ev.id));
+                              }
+                            }}
+                            className="px-3 py-2 rounded-xl text-xs font-bold bg-white hover:bg-red-50 text-red-600 border border-gray-200 cursor-pointer"
+                            title="Delete event"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                <div className="space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      onClick={() => setSelectedEventId(null)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 cursor-pointer"
+                    >
+                      ← All events
+                    </button>
+                    <div className="text-right">
+                      <div className="font-bold text-gray-900">{selectedEvent.name}</div>
+                      <div className="text-xs text-gray-500">{new Date(selectedEvent.endedAt).toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {[['leaderboard', 'Leaderboard'], ['matches', 'Match History']].map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setEventDetailTab(key)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition ${
+                          eventDetailTab === key ? 'bg-cyan-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {eventDetailTab === 'leaderboard' ? (
+                    <div className="bg-white border border-gray-200 rounded-2xl overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-100 text-xs uppercase text-gray-600">
+                          <tr>
+                            <th className="px-4 py-3">Rank</th>
+                            <th className="px-4 py-3">Player</th>
+                            <th className="px-4 py-3">Level</th>
+                            <th className="px-4 py-3">Games</th>
+                            <th className="px-4 py-3">W</th>
+                            <th className="px-4 py-3">L</th>
+                            <th className="px-4 py-3">Win %</th>
+                            <th className="px-4 py-3">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedEvent.leaderboard.length === 0 ? (
+                            <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400 italic">No players recorded.</td></tr>
+                          ) : selectedEvent.leaderboard.map((p, i) => (
+                            <tr key={i} className="border-t border-gray-100">
+                              <td className="px-4 py-3 font-black text-cyan-700">
+                                {p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : `#${p.rank}`}
+                              </td>
+                              <td className="px-4 py-3 font-bold text-gray-900">
+                                {p.name}{!p.isQualified && <span className="ml-2 text-[10px] text-gray-400 font-normal">provisional</span>}
+                              </td>
+                              <td className="px-4 py-3">{p.level}</td>
+                              <td className="px-4 py-3">{p.gamesPlayed}</td>
+                              <td className="px-4 py-3">{p.wins}</td>
+                              <td className="px-4 py-3">{p.losses}</td>
+                              <td className="px-4 py-3">{Math.round((p.winRate || 0) * 100)}%</td>
+                              <td className="px-4 py-3">{typeof p.finalScore === 'number' ? p.finalScore.toFixed(3) : p.finalScore}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    selectedEvent.matchHistory.length === 0 ? (
+                      <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center text-gray-400 italic">No matches in this event.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {selectedEvent.matchHistory.map(match => (
+                          <div key={match.id} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
+                            <div className="flex items-center gap-2.5 flex-wrap text-xs">
+                              <span className="font-black bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-100">Match #{match.matchNumber}</span>
+                              <span className="font-bold text-gray-700">{match.courtName}</span>
+                              <span className="text-gray-400 font-mono">• {formatDuration(match.durationSec)}</span>
+                              <span className="font-bold text-gray-600">Level {match.level ?? match.courtId ?? 1}</span>
+                            </div>
+                            <div className="flex items-center gap-6 text-xs flex-wrap">
+                              <span className="font-bold text-cyan-900">Team A: <span className="font-normal text-gray-700">{match.teamA.join(' & ')}</span> {match.winningTeam === 'A' && '👑'}</span>
+                              <span className="font-bold text-rose-900">Team B: <span className="font-normal text-gray-700">{match.teamB.join(' & ')}</span> {match.winningTeam === 'B' && '👑'}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </section>
+          );
+        })()}
+
+        {showQrModal && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowQrModal(false)}>
+            <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="font-extrabold text-gray-900 uppercase tracking-wide text-sm">Live View QR</h3>
+                <button onClick={() => setShowQrModal(false)} className="text-gray-400 hover:text-gray-700 cursor-pointer"><X className="w-5 h-5" /></button>
+              </div>
+              <p className="text-xs text-gray-500">Scan to open the read-only match view and live leaderboard.</p>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(PUBLIC_VIEW_URL())}`}
+                alt="QR code for the live view"
+                className="mx-auto w-[260px] h-[260px] border border-gray-200 rounded-xl"
+              />
+              <div className="text-[10px] text-gray-400 font-mono break-all">{PUBLIC_VIEW_URL()}</div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
